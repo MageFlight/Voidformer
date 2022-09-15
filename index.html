@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<title>Voidformer</title>
+
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+        background: black;
+      }
+
+      canvas {
+      	position: absolute;
+      	top: 50%;
+      	left: 50%;
+      	transform: translate(-50%, -50%);
+      	background: white;
+      }
+      
+      p {
+        background-color: white;
+      }
+    </style>
+	</head>
+	<body onunload="debugWindow.close()">
+		<canvas></canvas>
+    <p id="debugText"></p>
+
+		 <!-- Must load levels first -->
+		<script type="text/javascript" src="levels/1-1.js"></script>
+		<script type="text/javascript" src="js/index.js"></script>
+	</body>
+</html>
