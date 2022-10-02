@@ -225,7 +225,8 @@ class Level {
       const initCheck = new Checkpoint({
         x: rawCheck.x * lvlScale,
         y: gameHeight - (rawCheck.y * lvlScale)
-      });
+      },
+      await parseTex(Checkpoint.SIZE.width / lvlScale, Checkpoint.SIZE.height / lvlScale, this.data.textures.checkpoint[rawCheck.texture], lvlScale));
 
       this.staticSprites.push(initCheck);
     }
@@ -237,7 +238,7 @@ class Level {
         x: this.data.goal.x * lvlScale,
         y: gameHeight - (this.data.goal.y * lvlScale)
       },
-      await parseTex(8, 8, this.data.textures.goal[this.data.goal.texture], lvlScale)
+      await parseTex(Goal.SIZE.width / lvlScale, Goal.SIZE.height / lvlScale, this.data.textures.goal[this.data.goal.texture], lvlScale)
     );
 
     this.dynamicSprites.push(goal);
@@ -246,8 +247,7 @@ class Level {
     // Load Player
     const player = new Player(
       {x: this.data.spawn.x * lvlScale, y: gameHeight - (this.data.spawn.y * lvlScale)},
-      await parseTex(2, 2, this.data.textures.player.normal, lvlScale),
-      await parseTex(2, 2, this.data.textures.player.inverted, lvlScale)
+      await parseTex(Player.SIZE.width / lvlScale, Player.SIZE.height / lvlScale, this.data.textures.player.normal, lvlScale)
     );
 
     this.dynamicSprites.push(player);

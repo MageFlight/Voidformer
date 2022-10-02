@@ -217,7 +217,7 @@ const lvlTutorial = {
 			x: 126,
 			y: 4,
 			fontSize: 34,
-			text: "Make sure to walk through the checkpoints!"
+			text: "Make sure to walk through the teleporters!"
 		},
 		{
 			x: 314,
@@ -229,7 +229,8 @@ const lvlTutorial = {
 	checkpoints: [ // Checkpoints are 2x2
 		{
 			x: 145,
-			y: 4
+			y: 4,
+			texture: "teleporter"
 		}
 	],
 	goal: { // Goal is 8x8
@@ -241,13 +242,18 @@ const lvlTutorial = {
 
 	textures: {
 		player: {
-			normal: {
-				type: "staticTex",
-				src: "assets/player/restingNormal.svg"
-			},
-			inverted: {
-				type: "staticTex",
-				src: "assets/player/restingInverted.svg"
+			normal:{
+				type: "multiStateTex",
+				states: {
+					normal: {
+						type: "staticTex",
+						src: "assets/player/restingNormal.svg"
+					},
+					inverted: {
+						type: "staticTex",
+						src: "assets/player/restingInverted.svg"
+					}
+				}
 			}
 		},
 		platform: {
@@ -263,6 +269,21 @@ const lvlTutorial = {
 				],
 				rotating: true,
 				tileSize: 1
+			}
+		},
+		checkpoint: {
+			teleporter: {
+				type: "multiStateTex",
+				states: {
+					inactive: {
+						type: "staticTex",
+						src: "assets/checkpoint/inactive.svg"
+					},
+					active: {
+						type: "staticTex",
+						src: "assets/checkpoint/active.svg"
+					}
+				}
 			}
 		},
 		goal: {

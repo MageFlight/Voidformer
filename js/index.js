@@ -127,10 +127,13 @@ class Hologram extends Sprite {
 class Checkpoint extends Sprite {
   _active = false;
   _activationBox;
+  _texture;
+  static SIZE = {width: 128, height: 128};
 
-  constructor(position) {
-    super(position, {width: 128, height: 128});
+  constructor(position, texture) {
+    super(position, Checkpoint.SIZE);
     this._activationBox = new AABB(position, this.size);
+    this._texture = texture;
   }
 
   set active(newState) {
@@ -142,17 +145,18 @@ class Checkpoint extends Sprite {
   }
 
   draw() {
-    fillRect(this.position, this.size, this._active ? "#ffd46e" : "#d480d3");
+    // fillRect(this.position, this.size, this._active ? "#ffd46e" : "#d480d3");
+    this._texture[this._active ? 'active' : 'inactive'].draw(this.position, this.size);
   }
 }
 
 class Goal extends DynamicBox {
   _takeoff = {time: 1000, active: false};
   _texture;
+  static SIZE = {width: 512, height: 512};
 
   constructor(position, texture) {
-    super(position, {width: 512, height: 512}, new DynamicAABB({x:0,y:0}, {width: 512, height: 512}, {x:0,y:0}, false));
-    this._activationBox = new AABB(position, this.size);
+    super(position, Goal.SIZE, new DynamicAABB({x:0,y:0}, Goal.SIZE, {x:0,y:0}, false));
     this.gravityMultiplier = 0;
     this._texture = texture;
   }
@@ -175,10 +179,6 @@ class Goal extends DynamicBox {
     }
   }
 
-  get activationBox() {
-    return this._activationBox;
-  }
-
   startTakeoff() {
     this._takeoff.active = true;
   }
@@ -190,18 +190,15 @@ class Goal extends DynamicBox {
 }
 
 class Player extends DynamicBox {
-  _textures;
+  _texture;
+  static SIZE = {width: 128, height: 128};
 
-  constructor(position, normalTex, flipTex) {
-    super(position, {width: 128, height: 128}, new DynamicAABB({x: 0, y: 0}, {width: 128, height: 128}, {x: 0, y: 0}, true));
+  constructor(position, texture) {
+    super(position, Player.SIZE, new DynamicAABB({x: 0, y: 0}, Player.SIZE, {x: 0, y: 0}, true));
     
     log("PlayerSpawn: " + JSON.stringify(position));
     this.spawn = {x: position.x, y: position.y};
-    this.size = {width: 128, height: 128};
-    this._textures = {
-      normal: normalTex,
-      inverted: flipTex
-    };
+    this._texture = texture;
     
     this.gravityMultiplier = 1;
     this.haveReserveFlip = true;
@@ -211,7 +208,7 @@ class Player extends DynamicBox {
 
   draw() {
     //debugLine(this.position, {x: this.position.x + (this.collider.velocity.x * dt), y: this.position.y + (this.collider.velocity.y * dt)}, '#000' )
-    this._textures[this.gravityMultiplier > 0 ? 'normal' : 'inverted'].draw(this.position, this.size);
+    this._texture[this.gravityMultiplier > 0 ? 'normal' : 'inverted'].draw(this.position, this.size);
   }
   
   update() {
@@ -264,7 +261,7 @@ class Player extends DynamicBox {
     }
 
     //// Win Condition ////
-    if (this.collider.intersecting(currentLevel.getSprites(Goal)[0].activationBox)) {
+    if (this.collider.intersecting(currentLevel.getSprites(Goal)[0].collider)) {
       currentLevel.win();
     }
   }
@@ -348,9 +345,6 @@ const frame = beginTime => {
 };
 
 // setInterval(frame, 1000 / 60)
-try {
-  currentLevel.load().then(() => requestAnimationFrame(frame));
-} catch (error) {
-  alert(error.stack);
-  running = false
-}
+currentLevel.load()
+.then(() => requestAnimationFrame(frame))
+.catch(error => { alert(error.stack); running = false });

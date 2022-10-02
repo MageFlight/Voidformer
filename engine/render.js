@@ -120,16 +120,31 @@ async function parseTex(rawWidth, rawHeight, rawData, scale) {
   switch (rawData.type) {
     case 'staticTex':
       tex = new Texture(rawData.src);
+      await tex.load();
       break;
 
     case 'tiledTex':
       tex = new TiledTexture({
         width: rawWidth * scale,
         height: rawHeight * scale
-      }, rawData.tileSize * scale, rawData.rotating, rawData.src)
+      }, rawData.tileSize * scale, rawData.rotating, rawData.src);
+      await tex.load();
       break;
+    
+    case 'multiStateTex':
+      log("loading multi");
+      tex = {};
+      let states = Object.keys(rawData.states);
+      for (let i = 0; i < states.length; i++) {
+        const stateTex = await (parseTex(rawWidth, rawHeight, rawData.states[states[i]], scale));
+        tex[states[i]] = stateTex;
+      }
+      break;
+    
+    default:
+      throw new Error("Unknown texture type: " + rawData.type);
+      // Don't need break because of the error thrown.
   }
-  await tex.load();
 
   return tex;
 }
