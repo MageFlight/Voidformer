@@ -1,6 +1,6 @@
 let gravity = 0.00072;
 let running = true;
-let logging = true;
+let logging = false;
 
 // Add an action with the key being its name, an active property set to false, and an array of the key code used to toggle it.
 const actions = {
@@ -89,7 +89,8 @@ class Spike extends StaticBox {
   }
   
   draw() {
-    fillRect(this.position, this.size, '#de0023');
+    //fillRect(this.position, this.size, '#de0023');
+    this._texture.draw(this.position, this.size);
   }
 }
 
@@ -151,12 +152,13 @@ class Checkpoint extends Sprite {
 }
 
 class Goal extends DynamicBox {
-  _takeoff = {time: 1000, active: false};
+  _takeoff = {time: 1500, active: false};
   _texture;
   static SIZE = {width: 512, height: 512};
 
   constructor(position, texture) {
-    super(position, Goal.SIZE, new DynamicAABB({x:0,y:0}, Goal.SIZE, {x:0,y:0}, false));
+    super(position, Goal.SIZE, new DynamicAABB({x: (Goal.SIZE.width - 283) / 2, y: 0}, {x: 283, y: 0}, {x:0,y:0}, false));
+    log("Goal collider: " + JSON.stringify(this.collider.position))
     this.gravityMultiplier = 0;
     this._texture = texture;
   }
@@ -166,7 +168,7 @@ class Goal extends DynamicBox {
       this._takeoff.time -= dt;
     }
     if (this._takeoff.time <= 0) {
-      this.collider.acceleration.y = -0.001;
+      this.collider.acceleration.y = -0.0003;
     }
 
     if (this.position.y + this.size.height < -150) {
@@ -213,9 +215,11 @@ class Player extends DynamicBox {
   
   update() {
     //// Controlling ////
-    if (actions.left.active === actions.right.active) { // XNOR Gate
+    log("l: " + actions.left.active + " r: " + actions.right.active);
+    log("result: " + (actions.left.active == actions.right.active));
+    if (actions.left.active == actions.right.active) { // XNOR Gate
       this.collider.acceleration.x = 0;
-    } if (actions.left.active) {
+    } else if (actions.left.active) {
       this.collider.acceleration.x = -0.014;
     } else if (actions.right.active) {
       this.collider.acceleration.x = 0.014;

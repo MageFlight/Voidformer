@@ -4,7 +4,7 @@ const GAME_HEIGHT = 17;
 
 // ---===[BOTTOM LEFT CORNER IS 0, 0, AND POSITIONS ARE TOP LEFT BASED]===---
 const lvlTutorial = {
-	background: '#111',
+	background: "stars",
 	spawn: {
 		x: 6, // Default is 6
 		y: 4
@@ -41,7 +41,7 @@ const lvlTutorial = {
 		{ // Top roof
 			x: 54,
 			y: GAME_HEIGHT,
-			width: 50,
+			width: 41,
 			height: 2,
 			texture: "moon"
 		},
@@ -61,16 +61,16 @@ const lvlTutorial = {
 		},
 		{
 			x: 100,
-			y: GAME_HEIGHT - 8,
+			y: GAME_HEIGHT,
 			width: 5,
-			height: 1,
+			height: 9,
 			texture: "moon"
 		},
 		{
 			x: 110,
-			y: GAME_HEIGHT - 8,
+			y: GAME_HEIGHT,
 			width: 5,
-			height: 1,
+			height: 9,
 			texture: "moon"
 		},
 		{
@@ -156,37 +156,43 @@ const lvlTutorial = {
 			x: 163,
 			y: 3,
 			width: 2,
-			height: 1
+			height: 1,
+			texture: "stalagmite"
 		},
 		{
 			x: 179,
 			y: 3,
 			width: 30,
-			height: 1
+			height: 1,
+			texture: "stalagmite"
 		},
 		{
 			x: 234,
 			y: 4,
 			width: 1,
-			height: 2
+			height: 2,
+			texture: "stalagmite"
 		},
 		{
 			x: 250,
 			y: GAME_HEIGHT - 4,
 			width: 2,
-			height: 2
+			height: 2,
+			texture: "stalactite"
 		},
 		{
 			x: 264,
 			y: GAME_HEIGHT - 6,
 			width: 1,
-			height: 1
+			height: 1,
+			texture: "stalactite"
 		},
 		{
 			x: 285,
 			y: GAME_HEIGHT - 4,
 			width: 1,
-			height: 3
+			height: 3,
+			texture: "stalactite"
 		}
 	],
 	holograms: [
@@ -267,7 +273,28 @@ const lvlTutorial = {
 					"assets/platforms/moonGround4.svg",
 					"assets/platforms/moonGround5.svg"
 				],
-				rotating: true,
+				rotation: -1, // rotation -1 means random rotation
+				tileDir: "all",
+				tileSize: 1
+			}
+		},
+		spike: {
+			stalagmite: {
+				type: "tiledTex",
+				src: [
+					"assets/spike/moonRock.svg"
+				],
+				rotation: 0,
+				tileDir: 'hor',
+				tileSize: 1
+			},
+			stalactite: {
+				type: "tiledTex",
+				src: [
+					"assets/spike/moonRock.svg"
+				],
+				rotation: 180, // rotation is measured in degrees
+				tileDir: 'hor',
 				tileSize: 1
 			}
 		},
@@ -291,6 +318,12 @@ const lvlTutorial = {
 				type: "staticTex",
 				src: "assets/goal/rocket.svg"
 			}
+		},
+		background: {
+			stars: {
+				type: "staticTex",
+				src: "assets/background/stars.svg"
+			}	
 		}
 	}
 };

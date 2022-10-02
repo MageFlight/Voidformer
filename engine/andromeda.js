@@ -137,42 +137,18 @@ class Level {
     this.physicsEngine = new PhysicsEngine();
     this.scrollPos = 0;
     this.maxScroll = 0;
+    this.background = null;
   }
   
   async load() {
     const lvlScale = 64;
     if (this.data === null) { return; }
 
-    this.backgroundColor = this.data.background;
     this.staticSprites = [];
     this.dynamicSprites = [];
 
-    // Load textures
-    /*
-    const textureTypes = Object.keys(this.data.textures);
-    for (let i = 0; i < textureTypes.length; i++) {
-      const target = textureTypes[i]; // get the type of sprite the texture is for
-      const targetDat = this.data.textures[target];
-      textureSlots[target] = {};
-
-      const targetTextures = Object.keys(targetDat);
-      for (let x = 0; x < targetTextures.length; x++) {
-        const rawTex = targetDat[x];
-        
-        let refinedTex;
-        switch (rawTex.type) {
-          case "staticTex":
-            refinedTex = new Texture(tex.src);
-            break;
-          case "tileTex":
-            refinedTex = new TiledTexture()
-        }
-      }
-    }
-    log("tex: " + JSON.stringify(textureSlots));*/
-
     // Load Background
-    canvas.style.background = this.backgroundColor;
+    this.background = await parseTex(gameHeight / lvlScale, gameWidth / lvlScale, this.data.textures.background[this.data.background], lvlScale);
 
     // Load maxScroll
     this.maxScroll = (this.data.maxScroll * lvlScale) - gameWidth;
@@ -205,7 +181,8 @@ class Level {
       }, {
         width: rawSpike.width * lvlScale,
         height: rawSpike.height * lvlScale
-      });
+      },
+      await parseTex(rawSpike.width, rawSpike.height, this.data.textures.spike[rawSpike.texture], lvlScale));
 
       this.staticSprites.push(initSpike);
       this.physicsEngine.addStaticSprite(initSpike);
@@ -281,6 +258,7 @@ class Level {
   draw() {
     log("scroll: " + this.scrollPos);
     viewport.translate(-this.scrollPos * (canvas.clientWidth / gameWidth) - viewport.getTransform().e,0);
+    this.background.draw({x: this.scrollPos, y: 0}, {width: gameWidth + 1, height: gameHeight});
 
     //alert("drawing: " + JSON.stringify(this.staticSprites));
     for (let i = 0; i < this.staticSprites.length; i++) {

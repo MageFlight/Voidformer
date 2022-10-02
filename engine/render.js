@@ -38,14 +38,18 @@ class TiledTexture extends Texture {
   _tileSize = 64; // Assume tiles are square
   _sources = [];
   _size;
-  _rotating;
+  _rotation;
+  _tileHor;
+  _tileVer;
 
-  constructor(size, imageSize, rotating, sources) {
+  constructor(size, imageSize, rotation, tileDirection, sources) {
     super();
     this._tileSize = imageSize;
     this._sources = sources;
     this._size = size;
-    this._rotating = rotating;
+    this._rotation = rotation;
+    this._tileHor = tileDirection == "all" || tileDirection == "hor";
+    this._tileVer = tileDirection == "all" || tileDirection == "ver";
   }
 
   async load() {
@@ -65,16 +69,22 @@ class TiledTexture extends Texture {
     let workingTiles = [...tiles]; // Copy the tiles
     seedShuffleArray(workingTiles) // Initialize seed and shuffule array
 
-    for (let column = 0; column < this._size.width; column += this._tileSize) {
-      for (let row = 0; row < this._size.height; row += this._tileSize) {
+    log("tileSize: " + this._tileSize)
+    for (let column = 0; column < (this._tileHor ? this._size.width : this._tileSize); column += this._tileSize) {
+      for (let row = 0; row < (this._tileVer ? this._size.height : this._tileSize); row += this._tileSize) {
         const img = workingTiles.shift();
         //console.log(img.complete);
 
-        if (this._rotating) {
-          const x = column + this._tileSize / 2; // middle of image
-          const y = row + this._tileSize / 2;
+        if (this._rotation != 0) {
+          log("tile hor: " + this._tileHor);
+          log("tile ver: " + this._tileVer);
+          const width = this._tileHor ? this._tileSize : this._size.width;
+          const height = this._tileVer ? this._tileSize : this._size.height;
+          log("width: " + width + " height: " + height)
+          const x = column + width / 2; // middle of image
+          const y = row + height / 2;
 
-          const angle = Math.floor(seedRand(0, 4)) * 0.5 * Math.PI;
+          const angle = this._rotation == -1 ? Math.floor(seedRand(0, 4)) * 0.5 * Math.PI : this._rotation * Math.PI / 180;
 
           // Essentially rotating the image about its center
           tileRender.save();
@@ -82,10 +92,10 @@ class TiledTexture extends Texture {
           tileRender.rotate(angle);
           tileRender.drawImage(
             img,
-            -this._tileSize / 2,
-            -this._tileSize / 2,
-            this._tileSize,
-            this._tileSize
+            -width / 2,
+            -height / 2,
+            width,
+            height
           )
           tileRender.restore();
         } else {
@@ -93,8 +103,8 @@ class TiledTexture extends Texture {
             img,
             column,
             row,
-            this._tileSize,
-            this._tileSize
+            this._tileHor ? this._tileSize : this._size.width,
+            this._tileVer ? this._tileSize : this._size.height
           );
         }
 
@@ -124,10 +134,16 @@ async function parseTex(rawWidth, rawHeight, rawData, scale) {
       break;
 
     case 'tiledTex':
-      tex = new TiledTexture({
-        width: rawWidth * scale,
-        height: rawHeight * scale
-      }, rawData.tileSize * scale, rawData.rotating, rawData.src);
+      tex = new TiledTexture(
+        {
+          width: rawWidth * scale,
+          height: rawHeight * scale
+        },
+        rawData.tileSize * scale,
+        rawData.rotation,
+        rawData.tileDir,
+        rawData.src
+      );
       await tex.load();
       break;
     

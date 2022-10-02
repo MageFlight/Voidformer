@@ -36,6 +36,8 @@ class AABB {
   class DynamicAABB extends StaticAABB {
     constructor(offset = {x: 0, y: 0}, size = {x: 10, y: 10}, velocity = {x: 0, y: 0}, enabled = true) {
       super(offset, size, enabled);
+      
+      log("Offset: " + JSON.stringify(offset));
       this.velocity = velocity;
       this.acceleration = {x:0, y:0};
       this.previousCollision = null;
