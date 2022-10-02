@@ -27,10 +27,12 @@
 	</head>
 	<body onunload="debugWindow.close()">
 		<canvas></canvas>
-    <p id="debugText"></p>
 
-		 <!-- Must load levels first -->
-		<script type="text/javascript" src="levels/1-1.js"></script>
+		<!-- Must load levels first -->
+		<script type="text/javascript" src="engine/render.js"></script>
+		<script type="text/javascript" src="engine/andromeda.js"></script>
+		<script type="text/javascript" src="engine/physics.js"></script>
+		<script type="text/javascript" src="levels/tutorial.js"></script>
 		<script type="text/javascript" src="js/index.js"></script>
 	</body>
 </html>
