@@ -232,9 +232,9 @@ const lvlTutorial = {
 			y: 4
 		}
 	],
-	goal: { // Goal is 4x4
-		x: 330,
-		y: 6,
+	goal: { // Goal is 8x8
+		x: 326,
+		y: 10,
 		texture: "rocket"
 	},
 	maxScroll: 339,

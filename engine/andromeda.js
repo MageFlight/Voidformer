@@ -231,12 +231,13 @@ class Level {
     }
 
     // Load Goal
+    // TODO: Make size determined in lvl
     const goal = new Goal(
       {
         x: this.data.goal.x * lvlScale,
         y: gameHeight - (this.data.goal.y * lvlScale)
       },
-      await parseTex(4, 4, this.data.textures.goal[this.data.goal.texture], lvlScale)
+      await parseTex(8, 8, this.data.textures.goal[this.data.goal.texture], lvlScale)
     );
 
     this.dynamicSprites.push(goal);

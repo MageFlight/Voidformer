@@ -1,5 +1,5 @@
 let gravity = 0.00072;
-let running = false;
+let running = true;
 let logging = true;
 
 // Add an action with the key being its name, an active property set to false, and an array of the key code used to toggle it.
@@ -151,7 +151,7 @@ class Goal extends DynamicBox {
   _texture;
 
   constructor(position, texture) {
-    super(position, {width: 256, height: 256}, new DynamicAABB({x:0,y:0}, {width: 256, height: 256}, {x:0,y:0}, false));
+    super(position, {width: 512, height: 512}, new DynamicAABB({x:0,y:0}, {width: 512, height: 512}, {x:0,y:0}, false));
     this._activationBox = new AABB(position, this.size);
     this.gravityMultiplier = 0;
     this._texture = texture;
