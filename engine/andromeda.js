@@ -128,6 +128,8 @@ class StaticBox extends Sprite {
   }
 
 class Level {
+  _gui;
+
   constructor(initData) {
     this.data = initData;
     
@@ -138,6 +140,8 @@ class Level {
     this.scrollPos = 0;
     this.maxScroll = 0;
     this.background = null;
+    this._gui = new Imgui();
+    this._pauseBtn;
   }
   
   async load() {
@@ -146,6 +150,46 @@ class Level {
 
     this.staticSprites = [];
     this.dynamicSprites = [];
+
+    this._pauseBtn = await parseTex(1, 1, {
+      type: "multiStateTex",
+      states: {
+        pause: {
+          type: "multiStateTex",
+          states: {
+            normal: {
+              type: "staticTex",
+              src: "assets/gui/pauseNormal.svg"
+            },
+            hot: {
+              type: "staticTex",
+              src: "assets/gui/pauseHot.svg"
+            },
+            active: {
+              type: "staticTex",
+              src: "assets/gui/pauseActive.svg"
+            }
+          }
+        },
+        start: {
+          type: "multiStateTex",
+          states: {
+            normal: {
+              type: "staticTex",
+              src: "assets/gui/startNormal.svg"
+            },
+            hot: {
+              type: "staticTex",
+              src: "assets/gui/startHot.svg"
+            },
+            active: {
+              type: "staticTex",
+              src: "assets/gui/startActive.svg"
+            }
+          }
+        }
+      }
+    }, lvlScale);
 
     // Load Background
     this.background = await parseTex(gameHeight / lvlScale, gameWidth / lvlScale, this.data.textures.background[this.data.background], lvlScale);
@@ -268,6 +312,14 @@ class Level {
     for (let i = 0; i < this.dynamicSprites.length; i++) {
       if (this.dynamicSprites[i].showing) this.dynamicSprites[i].draw();
     }
+
+    this._gui.start();
+
+    if (this._gui.button(this._gui.getID(), {x: 25, y: 25}, {width: 64, height: 64}, this._pauseBtn[running ? 'pause' : 'start'])) {
+      running = !running;
+    }
+
+    this._gui.finish();
   }
   
   changeData(newData) {

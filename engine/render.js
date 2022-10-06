@@ -28,8 +28,8 @@ class Texture {
       this._data,
       Math.floor(position.x * scaleFactor),
       Math.floor(position.y * scaleFactor),
-      Math.ceil(size.width * scaleFactor),
-      Math.ceil(size.height * scaleFactor)
+      Math.round(size.width * scaleFactor),
+      Math.round(size.height * scaleFactor)
     );
   }
 }

@@ -336,12 +336,12 @@ const frame = beginTime => {
       viewport.clearRect(-viewport.getTransform().e, 0, canvas.width, canvas.height);
 
       currentLevel.update();
-      currentLevel.draw();
       if (actions.stepFrame.active && !actions.stepFrame.stale) {
         running = false;
         actions.stepFrame.stale = true;
       }
     }
+    currentLevel.draw();
   } catch (e) {
     alert(e.stack);
     running = false;

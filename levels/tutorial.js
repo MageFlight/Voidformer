@@ -248,7 +248,7 @@ const lvlTutorial = {
 
 	textures: {
 		player: {
-			normal:{
+			normal: {
 				type: "multiStateTex",
 				states: {
 					normal: {
