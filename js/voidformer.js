@@ -1,6 +1,6 @@
 let gravity = 0.00072;
-let running = true;
-let logging = false;
+let running = false;
+let logging = true;
 
 // Add an action with the key being its name, an active property set to false, and an array of the key code used to toggle it.
 const actions = {

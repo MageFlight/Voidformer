@@ -1,30 +1,22 @@
 class Imgui {
-  _mouseX = 0;
-  _mouseY = 0;
-  _mouseBtnStates = [false, false, false, false, false];
-  
   _hotItem = 0;
   _activeItem = 0;
   _currentID = 0; // Distributes 1 + this initial value
 
-  constructor() {
-    addEventListener("mousemove", event => {
-      const size = canvas.getBoundingClientRect();
+  _renderer = null;
 
-      this._mouseX = (event.clientX - size.x) / scaleFactor;
-      this._mouseY = (event.clientY - size.y) / scaleFactor;
-    });
-    
-    addEventListener("mousedown", event => this._mouseBtnStates[event.button] = true);
-    addEventListener("mouseup", event => this._mouseBtnStates[event.button] = false);
+  constructor() {
   }
 
   mouseInRegion(regionPos, regionSize) {
+    const mouseX = Main.get().mouseHandeler.getMousePos().x;
+    const mouseY = Main.get().mouseHandeler.getMousePos().y;
+
     return (
-      this._mouseX > regionPos.x &&
-      this._mouseX < regionPos.x + regionSize.width &&
-      this._mouseY > regionPos.y &&
-      this._mouseY < regionPos.y + regionSize.height
+      mouseX > regionPos.x &&
+      mouseX < regionPos.x + regionSize.width &&
+      mouseY > regionPos.y &&
+      mouseY < regionPos.y + regionSize.height
     );
   }
 
@@ -34,28 +26,27 @@ class Imgui {
       log(this._activeItem);
       if (this._activeItem == 0 || this._activeItem == id) {
         this._hotItem = id;
-        if (this._mouseBtnStates[0]) {
+        if (Main.get().mouseHandeler.getButtonState(0)) {
           this._activeItem = id;
         }
       }
     }
 
     viewport.save();
-    viewport.setTransform(1, 0, 0, 1, 0, 0);
-    let tex;
+    viewport.setTransform(1, 0, 0, 1, 0, 0); // Always display GUI on top
     if (this._activeItem == id) {
-      tex = texture['active'];
+      texture.changeState('active');
     } else if (this._hotItem == id) {
-      tex = texture['hot'];
+      texture.changeState('hot');
     } else {
-      tex = texture['normal'];
+      texture.changeState('normal');
     }
-    tex.draw(position, size);
+    this._renderer.drawTexture(position, size, texture.currentTex);
     viewport.restore();
 
     // If the button is hot and active, but mouse is up,
     // the user must have clicked.
-    return !this._mouseBtnStates[0] && this._hotItem == id && this._activeItem == id;
+    return !Main.get().mouseHandeler.getButtonState(0) && this._hotItem == id && this._activeItem == id;
   }
 
   getID() {
@@ -63,25 +54,18 @@ class Imgui {
     return this._currentID;
   }
 
-  start() {
+  start(renderer) {
     this._currentID = 0;
     this._hotItem = 0;
-    log("mouseBtns: " + JSON.stringify(this._mouseBtnStates));
-    log("mouseX: " + this._mouseX + " mouseY: " + this._mouseY);
+    this._renderer = renderer;
   }
 
   finish() {
-    if (!this._mouseBtnStates[0]) {
+    this._renderer = null;
+    if (!Main.get().mouseHandeler.getButtonState(0)) {
       this._activeItem = 0;
     } else if (this._activeItem == 0) {
       this._activeItem = -1;
     }
-  }
-}
-
-class View {
-  constructor() {}
-
-  imgui() {
   }
 }

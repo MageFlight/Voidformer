@@ -4,7 +4,6 @@ const gameHeight = 1088;
 setCanvasSize();
 
 let prevBeginTime = Date.now();
-let dt = 0;
 
 let debugWindow = window.open("", "DEUBUG", `width=500,height=500,top=${(screen.height - 500) / 2},left=${screen.width - 500}`);
 debugWindow.document.write('<title>DEBUG</title><body><p id="log" style="white-space: pre-wrap;"></p></body>');
