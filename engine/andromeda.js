@@ -1,47 +1,61 @@
-const gameWidth = 1920;
-const gameHeight = 1088;
+// const gameWidth = 1920;
+// const gameHeight = 1088;
 
-setCanvasSize();
+// setCanvasSize();
 
-let prevBeginTime = Date.now();
+// let prevBeginTime = Date.now();
 
-let debugWindow = window.open("", "DEUBUG", `width=500,height=500,top=${(screen.height - 500) / 2},left=${screen.width - 500}`);
-debugWindow.document.write('<title>DEBUG</title><body><p id="log" style="white-space: pre-wrap;"></p></body>');
-debugWindow.blur();
-window.focus();
-let debugLines = [];
-//console.log = message => alert(message);
-//console.error = message => alert('Error: ' + message);
-function log(message) {
-  console.log(message);
-  //return;
-  if (logging) {
-    if (!debugWindow.closed) {
-      /*debugLines.push(message);
-      if (debugLines.length > 10) debugLines.shift(); // If more than 200 lines, remove the first one.
-      debugWindow.document.querySelector('#log').textContent = debugLines.join("\n");*/
-      const messageElement = debugWindow.document.createElement('p');
-      messageElement.textContent = message;
-      debugWindow.document.querySelector('body').appendChild(messageElement);
-      debugWindow.scrollTo(0, debugWindow.document.body.scrollHeight);
-      let debugLines = debugWindow.document.querySelector('body').children;
-      if (debugLines.length > 40) {
-        debugLines[0].remove();
-      }
-    } else {
-      alert(message);
-    }
-  }
-}
+// let debugWindow = window.open("", "DEUBUG", `width=500,height=500,top=${(screen.height - 500) / 2},left=${screen.width - 500}`);
+// debugWindow.document.write('<title>DEBUG</title><body><p id="log" style="white-space: pre-wrap;"></p></body>');
+// debugWindow.blur();
+// window.focus();
+// let debugLines = [];
+// //console.log = message => alert(message);
+// //console.error = message => alert('Error: ' + message);
+// function log(message) {
+//   console.log(message);
+//   //return;
+//   if (logging) {
+//     if (!debugWindow.closed) {
+//       /*debugLines.push(message);
+//       if (debugLines.length > 10) debugLines.shift(); // If more than 200 lines, remove the first one.
+//       debugWindow.document.querySelector('#log').textContent = debugLines.join("\n");*/
+//       const messageElement = debugWindow.document.createElement('p');
+//       messageElement.textContent = message;
+//       debugWindow.document.querySelector('body').appendChild(messageElement);
+//       debugWindow.scrollTo(0, debugWindow.document.body.scrollHeight);
+//       let debugLines = debugWindow.document.querySelector('body').children;
+//       if (debugLines.length > 40) {
+//         debugLines[0].remove();
+//       }
+//     } else {
+//       alert(message);
+//     }
+//   }
+// }
 
 class Sprite {
     _showing = true;
     _pinned = false;
     _position = {x: 0, y: 0};
-    
+    _size;
+
     constructor(position, size) {
       this._position = position;
-      this.size = size;
+      this._size = size;
+    }
+
+    static async loadFromRaw(data, scale, textures) {
+      const pos = {
+        x: data.x * scale,
+        y: Utils.gameHeight - (data.y * scale)
+      };
+      const size = {
+        x: data.w * scale,
+        y: data.h * scale
+      };
+
+      return new Sprite(pos, size);
     }
   
     update() {
@@ -62,6 +76,10 @@ class Sprite {
     get position() {
       return this._position;
     }
+
+    get size() {
+      return this._size;
+    }
   
     set showing(newValue) {
       this._showing = newValue;
@@ -81,51 +99,63 @@ class Sprite {
   }
 
 class StaticBox extends Sprite {
-    constructor(position = {x: 0, y: 0}, size = {x: 64, y: 64}, collider, frictionCoef = 0.9) {
-      super(position, size);
-      this.collider = collider;
-      this.collider.position = {
-        x: this.position.x + this.collider.offset.x,
-        y: this.position.y + this.collider.offset.y
-      };
-      this.frictionCoef = frictionCoef;
-      log("friction " + this.frictionCoef);
-    }
-    
-    syncColliderPos() {
-      this.collider.position = {
-        x: this.position.x + this.collider.offset.x,
-        y: this.position.y + this.collider.offset.y
-      };
-    }
+  _collider;
+
+  constructor(position = {x: 0, y: 0}, size = {x: 64, y: 64}, collider, frictionCoef = 0.9) {
+    super(position, size);
+    this._collider = collider;
+    this._collider.position = {
+      x: this.position.x + this._collider.offset.x,
+      y: this.position.y + this._collider.offset.y
+    };
+    this.frictionCoef = frictionCoef;
+    log("friction " + this.frictionCoef);
+  }
+
+  get collider() {
+    return this._collider;
   }
   
+  syncColliderPos() {
+    this._collider.position = {
+      x: this.position.x + this._collider.offset.x,
+      y: this.position.y + this._collider.offset.y
+    };
+  }
+}
+  
   class DynamicBox extends Sprite {
+    _collider;
+
     constructor(position = {x: 0, y: 0}, size = {x: 10, y: 10}, collider, mass=10) {
       super(position, size);
-      this.collider = collider;
-      this.collider.position = {
-        x: this.position.x + this.collider.offset.x,
-        y: this.position.y + this.collider.offset.y
+      this._collider = collider;
+      this._collider.position = {
+        x: this.position.x + this._collider.offset.x,
+        y: this.position.y + this._collider.offset.y
       };
       this.gravityMultiplier = 1;
       this.mass = mass;
       this.groundPlatform = null;
     }
+
+    get collider() {
+      return this._collider;
+    }
   
     customCollisionResponse(collision) {}
     
     syncColliderPos() {
-      this.collider.position = {
-        x: this.position.x + this.collider.offset.x,
-        y: this.position.y + this.collider.offset.y
+      this._collider.position = {
+        x: this.position.x + this._collider.offset.x,
+        y: this.position.y + this._collider.offset.y
       };
     }
     
     physicsUpdate() {
     }
   }
-
+/*
 class Level {
   _gui;
 
@@ -133,7 +163,7 @@ class Level {
     this.data = initData;
     
     this.staticSprites = [];
-    this.dynamicSprites = []; // Dynamic Sprites[0] is always player.
+    this.dynamicSprites = [];
     this.backgroundColor = '#ffffff';
     this.physicsEngine = new PhysicsEngine();
     this.scrollPos = 0;
@@ -293,7 +323,7 @@ class Level {
     if (playerScreenX > rightBound) {
       this.scrollPos += playerScreenX - rightBound;
     } else if (playerScreenX < leftBound) {
-      this.scrollPos = this.scrollPos + playerScreenX - leftBound;
+      this.scrollPos = this.scrollPos + playerScreenX x- leftBound;
     }
     this.scrollPos = Math.min(Math.max(this.scrollPos, 0), this.maxScroll);
   }
@@ -354,7 +384,7 @@ class Level {
       return sprites;
     }
   }
-}
+}*/
 
 addEventListener('keydown', ({code}) => {
   // Loop through all the actions and activate it if the corrosponding key is pressed.
@@ -377,24 +407,3 @@ addEventListener('keyup', ({code}) => {
     }
   });
 });
-
-addEventListener('resize', setCanvasSize);
-
-//// Utilities ////
-
-let rngSeed = 12;
-// RNG w/ seed
-function seedRand(min = 0, max = 1,startSeed=-1) {
-  rngSeed = startSeed > 0 ? startSeed : (rngSeed * 9301 + 49297) % 233280;
-  return min + (rngSeed / 233280) * (max - min);
-}
-
-function seedShuffleArray(arr) {
-  for (let i = arr.length - 1; i > 0; i--) {
-    let j = Math.floor(seedRand(0, i + 1));
-    
-    // Same thing as this:
-    // let t = array[i]; array[i] = array[j]; array[j] = t
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-  }
-}

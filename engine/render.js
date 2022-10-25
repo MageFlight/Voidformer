@@ -35,7 +35,8 @@ class MultiStateTex extends Texture {
   _currentState = "";
 
   constructor(states, initialState) {
-    super("multi")
+    super("multi");
+    log("MultitexStates:", states);
     this._textures = states;
     this._currentState = initialState;
   }
@@ -45,6 +46,7 @@ class MultiStateTex extends Texture {
   }
 
   get currentTex() {
+    log("current state:" + this._currentState);
     return this._textures[this._currentState];
   }
 
@@ -114,7 +116,6 @@ class TiledTexture extends Texture {
   }
 
   async load() {
-    log("rawSources: " + JSON.stringify(this._sources))
     let tiles = [];
     for (let i = 0; i < this._sources.length; i++) {
       tiles.push(await getImage(this._sources[i]));
@@ -124,29 +125,24 @@ class TiledTexture extends Texture {
     tileCanvas.width = this._size.width;
     tileCanvas.height = this._size.height;
     const tileRender = tileCanvas.getContext('2d');
-    rngSeed = currentTileRNG;
+    const rng = Utils.seedRandom(currentTileRNG);
     currentTileRNG++;
 
     let workingTiles = [...tiles]; // Copy the tiles
-    seedShuffleArray(workingTiles) // Initialize seed and shuffule array
+    Utils.shuffleArray(workingTiles, rng) // Initialize seed and shuffule array
 
-    log("tileSize: " + this._tileSize)
     for (let column = 0; column < (this._tileHor ? this._size.width : this._tileSize); column += this._tileSize) {
       for (let row = 0; row < (this._tileVer ? this._size.height : this._tileSize); row += this._tileSize) {
         const img = workingTiles.shift();
         //console.log(img.complete);
 
         if (this._rotation != 0) {
-          log("tile hor: " + this._tileHor);
-          log("tile ver: " + this._tileVer);
           const width = this._tileHor ? this._tileSize : this._size.width;
           const height = this._tileVer ? this._tileSize : this._size.height;
-          log("width: " + width + " height: " + height)
           const x = column + width / 2; // middle of image
           const y = row + height / 2;
 
-          const angle = this._rotation == -1 ? Math.floor(seedRand(0, 4)) * 0.5 * Math.PI : this._rotation * Math.PI / 180;
-
+          const angle = this._rotation == -1 ? Math.floor(rng.next().value * 4) * 0.5 * Math.PI : this._rotation * Math.PI / 180;
           // Essentially rotating the image about its center
           tileRender.save();
           tileRender.translate(x, y);
@@ -175,7 +171,7 @@ class TiledTexture extends Texture {
 
         if (workingTiles.length == 0) {
           workingTiles = [...tiles];
-          seedShuffleArray(workingTiles);
+          Utils.shuffleArray(workingTiles, rng);
         }
       }
     }
@@ -184,47 +180,47 @@ class TiledTexture extends Texture {
   }
 }
 
-async function parseTex(textureData, width, height) {
+async function parseTex(data, size) {
   let tex;
 
-  log("rawData: " + JSON.stringify(rawData))
-  switch (rawData.type) {
+  log("rawData: " + JSON.stringify(data))
+  switch (data.type) {
     case 'colorTex':
-      tex = new ColorTexture(rawData.color, rawData.fill);
+      tex = new ColorTexture(data.color, data.fill);
       await tex.load();
       break;
 
     case 'staticTex':
-      tex = new ImgTexture(rawData.src);
+      tex = new ImgTexture(data.src);
       await tex.load();
       break;
 
     case 'tiledTex':
       tex = new TiledTexture(
-        {
-          width: rawWidth * scale,
-          height: rawHeight * scale
-        },
-        rawData.tileSize * scale,
-        rawData.rotation,
-        rawData.tileDir,
-        rawData.src
+        size,
+        data.tileSize,
+        data.rotation,
+        data.tileDir,
+        data.src
       );
       await tex.load();
       break;
     
     case 'multiStateTex':
-      log("loading multi");
-      tex = {};
-      let states = Object.keys(rawData.states);
-      for (let i = 0; i < states.length; i++) {
-        const stateTex = await (parseTex(rawWidth, rawHeight, rawData.states[states[i]], scale));
-        tex[states[i]] = stateTex;
+      log("loading multi: ", data);
+      let states = {};
+      let stateKeys = Object.keys(data.states);
+      log("keys: " + stateKeys);
+      for (let i = 0; i < stateKeys.length; i++) {
+        log("loading for multi: " + data.states[stateKeys[i]])
+        const stateTex = await (parseTex(data.states[stateKeys[i]], size));
+        states[stateKeys[i]] = stateTex;
       }
+      tex = new MultiStateTex(states, data.default);
       break;
     
     default:
-      throw new Error("Unknown texture type: " + rawData.type);
+      throw new Error("Unknown texture type: " + data.type);
       // Don't need break because of the error thrown.
   }
 
@@ -260,7 +256,7 @@ class Renderer {
   constructor(canvas) {
     this._canvas = canvas;
     this._viewport = canvas.getContext("2d");
-    addEventListener("resize", this.setCanvasSize);
+    addEventListener("resize", () => this.setCanvasSize());
     this.setCanvasSize();
   }
 
@@ -288,40 +284,42 @@ class Renderer {
         texture.draw();
       default:
         throw new Error("Unknown texture type '" + texture.type.toLowerCase() + "'");
-        break;
     }
   }
 
   drawImage(position, size, data) {
-    viewport.drawImage(data, Math.floor(position.x * Renderer.scaleFactor), Math.floor(position.y * Renderer.scaleFactor), Math.ceil(size.width * Renderer.scaleFactor), Math.ceil(size.height * Renderer.scaleFactor));
+    viewport.drawImage(data, Math.floor(position.x * Renderer._scaleFactor), Math.floor(position.y * Renderer._scaleFactor), Math.ceil(size.width * Renderer._scaleFactor), Math.ceil(size.height * Renderer._scaleFactor));
   }
 
   fillRect(position, size, color) {
-    log("fillRect: " + JSON.stringify(position) + " " + Renderer.scaleFactor);
+    log("fillRect: " + JSON.stringify(position) + " " + Renderer._scaleFactor);
     this._viewport.fillStyle = color;
-    this._viewport.fillRect(Math.floor(position.x * Renderer.scaleFactor), Math.floor(position.y * Renderer.scaleFactor), Math.ceil(size.width * Renderer.scaleFactor), Math.ceil(size.height * Renderer.scaleFactor));
+    this._viewport.fillRect(Math.floor(position.x * Renderer._scaleFactor), Math.floor(position.y * Renderer._scaleFactor), Math.ceil(size.width * Renderer._scaleFactor), Math.ceil(size.height * Renderer._scaleFactor));
   }
 
   strokeRect(position, size, color, width = 1) {
     this._viewport.lineWidth = width;
     this._viewport.strokeStyle = color;
-    this._viewport.strokeRect(Math.floor(position.x * scaleFactor), Math.floor(position.y * scaleFactor), Math.ceil(size.width * scaleFactor), Math.ceil(size.height * scaleFactor))
+    this._viewport.strokeRect(Math.floor(position.x * Renderer._scaleFactor), Math.floor(position.y * Renderer._scaleFactor), Math.ceil(size.width * Renderer._scaleFactor), Math.ceil(size.height * Renderer._scaleFactor))
   }
 
   debugLine(startPos, endPos, color, width = 1) {
     this._viewport.strokeStyle = color;
     this._viewport.lineWidth = width;
     this._viewport.beginPath();
-    this._viewport.moveTo(Math.floor(startPos.x * scaleFactor), Math.floor(startPos.y * scaleFactor));
-    this._viewport.lineTo(Math.floor(endPos.x * scaleFactor), Math.floor(endPos.y * scaleFactor));
+    this._viewport.moveTo(Math.floor(startPos.x * Renderer._scaleFactor), Math.floor(startPos.y * Renderer._scaleFactor));
+    this._viewport.lineTo(Math.floor(endPos.x * Renderer._scaleFactor), Math.floor(endPos.y * Renderer._scaleFactor));
     this._viewport.stroke();
   }
 
   fillText(position, text, fontSize, color) {
-    log("text: " + JSON.stringify(position) + ", " + text + ", " + fontSize + ", " + color);
-    this._viewport.font = `${Math.ceil(fontSize * scaleFactor)}px arial`;
+    this._viewport.font = `${Math.ceil(fontSize * Renderer._scaleFactor)}px arial`;
     this._viewport.fillStyle = color;
-    this._viewport.fillText(text, Math.floor(position.x * scaleFactor), Math.floor(position.y * scaleFactor));
+    this._viewport.fillText(text, Math.floor(position.x * Renderer._scaleFactor), Math.floor(position.y * Renderer._scaleFactor));
+  }
+
+  translateTo(x, y) {
+    this._viewport.translate(-x * Renderer.scaleFactor - this._viewport.getTransform().e, y * Renderer.scaleFactor - this._viewport.getTransform().f);
   }
 
   setCanvasSize() {

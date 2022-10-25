@@ -23,7 +23,6 @@ class Imgui {
   button(id, position, size, texture) {
     if (this.mouseInRegion(position, size)) {
       // update hot and active items
-      log(this._activeItem);
       if (this._activeItem == 0 || this._activeItem == id) {
         this._hotItem = id;
         if (Main.get().mouseHandeler.getButtonState(0)) {

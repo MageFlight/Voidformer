@@ -1,8 +1,9 @@
 class Main {
   static _mainContext;
-  _prevView = -1;
-  _currentView = -1;
+  _prevView = null;
+  _currentView = null;
   _nextView = -1;
+  _transferData = null;
 
   _updateView = true;
   _drawView = true;
@@ -24,7 +25,13 @@ class Main {
       this._mouseHandeler = new MouseHandeler();
       this._gui = new Imgui();
       this._renderer = new Renderer(document.querySelector("canvas"));
+
       Utils.listen("greet", data => alert(JSON.stringify(data)));
+      Utils.listen("togglePause", () => {
+        this._updateView = !this._updateView;
+        this._updateGui = !this._updateGui;
+        this._drawView = !this._drawView;
+      });
     } catch (e) {
       log(e.stack);
     }
@@ -45,8 +52,7 @@ class Main {
       }
 
       if (this._nextView >= 0) {
-        this.changeView(this._nextView);
-        this._nextView = -1;
+        this.changeView(this._nextView).then(() => this._nextView = -1);
       } else {
         requestAnimationFrame(st => this.frame(st)); // Must use arrow function to retain refrence to this.
       }
@@ -55,26 +61,35 @@ class Main {
     }
   }
 
-  queueViewChange(newView) {
+  queueViewChange(newView, transferData) {
     this._nextView = newView;
+    this._transferData = transferData;
   }
 
-  changeView(newView) {
-    this._prevView = this._currentView;
-
+  async changeView(newView) {
+    if (this._currentView != null) {
+      this._currentView.stop();
+      this._prevView = this._currentView;
+    }
+  
     switch (newView) {
       case 0:
         this._currentView = new TitleView();
         break;
+      case 1:
+        this._currentView = new LevelView();
+        break;
+      default:
+        throw new Error("Unknown view: '" + newView + "'");
     }
 
-    this._currentView.init().then(() => {
-      this._currentView.start();
-      log("started");
-      requestAnimationFrame(st => {
-        this.frame(st);
-        log("frame")
-      });
+    console.log(this._currentView);
+    await this._currentView.init(this._transferData);
+    this._currentView.start();
+    log("started");
+    requestAnimationFrame(st => {
+      this.frame(st);
+      log("frame");
     });
   }
 

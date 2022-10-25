@@ -1,5 +1,8 @@
 class AABB {
     _position;
+    _onSpriteEnter = null;
+    _onSpriteExit = null;
+    _spritesInside = [];
   
     constructor(position, size) {
       this._position = position;
@@ -12,6 +15,36 @@ class AABB {
   
     set position(position) {
       this._position = position;
+    }
+
+    get onSpriteEnter() {
+      return this._onSpriteEnter;
+    }
+
+    set onSpriteEnter(action) {
+      this._onSpriteEnter = action;
+    }
+
+    get onSpriteExit() {
+      return this._onSpriteExit;
+    }
+
+    set onSpriteExit(action) {
+      this._onSpriteExit = action;
+    }
+
+    isInsideSprite(sprite) {
+      this._spritesInside.includes(sprite);
+    }
+
+    enterSprite(sprite) {
+      this._spritesInside.push(sprite);
+      if (this._onSpriteEnter) this._onSpriteEnter.call(this._onSpriteEnter, sprite);
+    }
+
+    exitSprite(sprite) {
+      this._spritesInside.splice(this._spritesInside.indexOf(sprite), 1);
+      if (this._onSpriteExit) this._onSpriteExit.call(this._onSpriteExit, sprite);
     }
     
     intersecting(c2) {
@@ -45,32 +78,78 @@ class AABB {
   }
 
 class PhysicsEngine {
+    _staticSprites = [];
+    _dynamicSprites = [];
+    _gravity = 0.00072;
+
     constructor() {
-      this.staticSprites = [];
-      this.dynamicSprites = [];
+    }
+
+    get gravity() {
+      return this.gravity;
+    }
+
+    addSprite(spr) {
+      log(spr.collider);
+      if (spr.collider instanceof DynamicAABB) {
+        log("foundDynamicSPrite: ", spr);
+        this.addDynamicSprite(spr);
+      } else if (spr.collider instanceof StaticAABB) {
+        log("foundStaticSprite: ", spr)
+        this.addStaticSprite(spr);
+      }
     }
     
+    removeSprite(spr) {
+      if (spr.collider instanceof DynamicAABB) {
+        this.removeDynamicSprite(spr);
+      } else if (spr.collider instanceof StaticAABB) {
+        this.removeStaticSprite(spr);
+      }
+    }
+
     addStaticSprite(sprite) {
-      this.staticSprites.push(sprite);
+      this._staticSprites.push(sprite);
     }
     
     removeStaticSprite(sprite) {
-      this.staticSprites.splice(this.staticSprites.indexOf(sprite), 1);
+      this._staticSprites.splice(this.staticSprites.indexOf(sprite), 1);
     }
     
     addDynamicSprite(sprite) {
-      this.dynamicSprites.push(sprite);
+      this._dynamicSprites.push(sprite);
     }
     
     removeDynamicSprite(sprite) {
-      this.dynamicSprites.splice(this.dynamicSprites.indexOf(sprite), 1);
+      this._dynamicSprites.splice(this._dynamicSprites.indexOf(sprite), 1);
     }
   
-    updateSprites() {
-      this.calculateCollisions();
+    updateSprites(dt) {
+      // Update sprite entering and exiting
+      const allSprites = this._dynamicSprites.concat(this._staticSprites);
+      for (let i = 0; i < this._dynamicSprites.length; i++) {
+        const collider = this._dynamicSprites[i].collider;
+        const sprite = this._dynamicSprites[i];
+
+        for (let x = 0; x < allSprites.length; x++) {
+          const otherCollider = allSprites[x].collider;
+          const otherSprite = allSprites[x];
+
+          if (i != x && !collider.isInsideSprite(otherSprite) && collider.intersecting(otherCollider)) {
+            collider.enterSprite(otherSprite);
+            otherCollider.enterSprite(sprite);
+          } else if (i != x && collider.isInsideSprite(otherSprite) && !collider.intersecting(otherCollider)) {
+            collider.exitSprite(otherSprite);
+            otherCollider.exitSprite(sprite);
+          }
+        }
+      }
+
+      this.calculateCollisions(dt);
       
-      for (let i = 0; i < this.dynamicSprites.length; i++) {
-        const sprite = this.dynamicSprites[i];
+      for (let i = 0; i < this._dynamicSprites.length; i++) {
+        const sprite = this._dynamicSprites[i];
+        sprite.physicsUpdate(dt);
         sprite.collider.velocity.x += sprite.collider.acceleration.x * dt;
         // Friction stuff
         // log(sprite.collider.acceleration.x);
@@ -89,13 +168,13 @@ class PhysicsEngine {
         log('vel: ' + JSON.stringify((sprite.collider.velocity)));
         console.log(dt)
         sprite.collider.velocity.x *= Math.pow(1 / 1.012, dt);
-        sprite.collider.velocity.y += (sprite.collider.acceleration.y + (gravity * sprite.mass * sprite.gravityMultiplier)) * dt; // Gravity is positive because it is applying force going down.
+        sprite.collider.velocity.y += (sprite.collider.acceleration.y + (this._gravity * sprite.mass * sprite.gravityMultiplier)) * dt; // Gravity is positive because it is applying force going down.
       }
     }
     
-    calculateCollisions() {
-      log("dboxes: " + JSON.stringify(this.dynamicSprites.length));
-      this.dynamicSprites.forEach(dBox => {
+    calculateCollisions(dt) {
+      log("dboxes: " + JSON.stringify(this._dynamicSprites.length));
+      this._dynamicSprites.forEach(dBox => {
         if (dBox.collider.enabled) {
           let possiblePlatforms = [];
           const broadBox = new AABB(
@@ -110,7 +189,7 @@ class PhysicsEngine {
   
           //strokeRect(broadBox.position, broadBox.size, '#000');
           // Get possible platforms to intersect
-          this.staticSprites.forEach(sBox => {
+          this._staticSprites.forEach(sBox => {
             if (!sBox.collider.enabled) return;
             if (broadBox.intersecting(sBox)) {
               possiblePlatforms.push(sBox);
@@ -133,13 +212,13 @@ class PhysicsEngine {
           let collisions = [];
           possiblePlatforms.forEach(sBox => {
             if (broadBox.intersecting(sBox)) {
-              const collision = this.sweptAABB(dBox, sBox);
+              const collision = this.sweptAABB(dBox, sBox, dt);
               
               if (!(collision.normal.x == 0 && collision.normal.y == 0)) {
                 dBox.position.x += (dBox.collider.velocity.x * dt) * collision.time;
                 dBox.position.y += (dBox.collider.velocity.y * dt) * collision.time;
                 
-                const dotprod = (dBox.collider.velocity.x * collision.normal.y + dBox.collider.velocity.y * collision.normal.x) * (1 - collision.time);
+                const dotprod = (dBox.collider.velocity.x * collision.normal.y + dBox.collider.velocity.y * collision.normal.x);
                 dBox.collider.velocity.x = dotprod * collision.normal.y;
                 dBox.collider.velocity.y = dotprod * collision.normal.x;
                 collisions.push(collision);
@@ -180,7 +259,7 @@ class PhysicsEngine {
       } else { // Moving Up
         dist.y = (sBox.position.y + sBox.size.height) - dBox.position.y;
       }
-  
+
       dist.x = dist.x < 0 ? Infinity : dist.x;
       dist.y = dist.y < 0 ? Infinity : dist.y;
       return Math.min(dist.x, dist.y);
@@ -188,7 +267,7 @@ class PhysicsEngine {
     
     // RETURN the time and surface normal.
     // Adapted from https://www.gamedev.net/articles/programming/general-and-gameplay-programming/swept-aabb-collision-detection-and-response-r3084/
-    sweptAABB(dynamicBox, staticBox) {
+    sweptAABB(dynamicBox, staticBox, dt) {
       const b1 = dynamicBox.collider;
       const b2 = staticBox.collider;
       //log("b1 collider: " + JSON.stringify(b1));
