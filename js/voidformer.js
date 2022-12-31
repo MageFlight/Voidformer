@@ -1,5 +1,6 @@
 console.log("void")
 // Add an action with the key being its name, an active property set to false, and an array of the key code used to toggle it.
+
 const actions = {
   left: {
     active: false,
@@ -57,98 +58,65 @@ const actions = {
   }
 };
 
-class Platform extends StaticBox {
-  _texture;
 
-  constructor(position, size, texture) {
-    super(position, size, new StaticAABB({x: 0, y: 0}, size, true), texture);
-    this._texture = texture;
-    log("tex: " + JSON.stringify(texture));
+class Platform extends StaticBody {
+  constructor(position, size, name) {
+    super(position, size, 0, 0.8, name);
   }
 
-  static async loadFromRaw(data, scale, textures) {
-    const pos = {
-      x: data.x * scale,
-      y: Utils.gameHeight - (data.y * scale)
-    };
-    const size = {
-      width: data.w * scale,
-      height: data.h * scale
-    };
-    let tex = null;
-    if (data.texture && data.texture != "") {
-      tex = await parseTex(Utils.parseObjectPath(`platform/${data.texture}`, textures), size);
-    } else {
-      tex = new ColorTexture("#ff0000", true);
-    }
+  // static async loadFromRaw(data, scale) {
+  //   const pos = data.pos.multiply(scale);
+  //   pos.y = Utils.gameHeight - pos.y;
+  //   const size = data.size.multiply(scale);
 
-    return new Platform(pos, size, tex);
-  }
-
+  //   return new Platform(pos, size, data.name);
+  // }
+/*
   draw(renderer) {
     ///console.log("draw platform")
     ///console.log(this.texture);
     //console.log(this.texture.draw)
     renderer.drawTexture(this._position, this._size, this._texture);
     // fillRect(this._position, this._size, this.color);
-  }
+  }*/
 }
 
-class Spike extends StaticBox {
-  _texture;
-
-  constructor(position, size, texture) {
-    super(position, size, new StaticAABB({x: 0, y: 0}, size, false));
-    this._texture = texture;
-    log(JSON.stringify(this._collider.position));
+class Spike extends Region {
+  constructor(position, size, name) {
+    super(position, size, name);
   }
-
-  static async loadFromRaw(data, scale, textures) {
-    const pos = {
-      x: data.x * scale,
-      y: Utils.gameHeight - (data.y * scale)
-    };
-    const size = {
-      width: data.w * scale,
-      height: data.h * scale
-    };
-    let tex = null;
-    if (data.texture && data.texture != "") {
-      tex = await parseTex(Utils.parseObjectPath(`spike/${data.texture}`, textures), size);
-    } else {
-      tex = new ColorTexture("#ff0000", true);
-    }
-
-    return new Spike(pos, size, tex);
-  }
-  
+  /*
   draw(renderer) {
     //fillRect(this._position, this._size, '#de0023');
     renderer.drawTexture(this._position, this._size, this._texture);
+  }*/
+  onRegionEnter(region) {
+    if (region instanceof Player) {
+      Utils.broadcast("playerDie");
+    }
   }
 }
 
 class Hologram extends Sprite {
   _fontSize = 16;
   _text = "Placeholder";
+  _color;
 
-  constructor(position, text, fontSize) {
-    super(position, {width: text.length * fontSize + 1, height: fontSize});
+  constructor(position, text, fontSize, color, name) {
+    super(position, new Vector2(text.length * fontSize + 1, fontSize), name);
     this._fontSize = fontSize;
     this._text = text;
+    this._color = color;
   }
 
-  static async loadFromRaw(data, scale, textures) {
-    console.log("creating sprite with data:", data);
-    const pos = {
-      x: data.x * scale,
-      y: Utils.gameHeight - (data.y * scale)
-    };
-    const text = data.text;
-    const fontSize = data.fontSize;
+  // static async loadFromRaw(data, scale) {
+  //   const pos = data.pos.multiply(scale);
+  //   pos.y = Utils.gameHeight - pos.y;
+  //   const text = data.text;
+  //   const fontSize = data.fontSize;
 
-    return new Hologram(pos, text, fontSize);
-  }
+  //   return new Hologram(pos, text, fontSize, data.name);
+  // }
 
   get fontSize() {
     return this._fontSize;
@@ -167,33 +135,27 @@ class Hologram extends Sprite {
   }
 
   draw(renderer) {
-    renderer.fillText(this._position, this._text, this._fontSize, "#fff");
+    renderer.fillText(this._position, this._text, this._fontSize, this._color);
   }
 }
 
-class Checkpoint extends StaticBox {
+class Checkpoint extends Region {
   _active = false;
-  _texture;
-  static SIZE = {width: 128, height: 128};
+  static SIZE = new Vector2(128, 128);
 
-  constructor(position, texture) {
-    super(position, Checkpoint.SIZE, new StaticAABB({x: 0, y: 0}, Checkpoint.SIZE, false));
-    this._texture = texture;
+  constructor(position, name) {
+    super(position, Checkpoint.SIZE, name);
+    log("Creating Checkpoint")
   }
 
-  static async loadFromRaw(data, scale, textures) {
-    const pos = {
-      x: data.x * scale,
-      y: Utils.gameHeight - (data.y * scale)
-    };
-    let tex = null;
-    if (data.texture && data.texture != "") {
-      tex = await parseTex(Utils.parseObjectPath(`checkpoint/${data.texture}`, textures), Checkpoint.SIZE);
-    } else {
-      tex = new ColorTexture("#ff0000", true);
+  onRegionEnter(region) {
+    log("Region Entered.");
+    if (region instanceof Player) {
+      this._active = true;
+      log("Texture: " + this.getChildType(TextureRect).texture.changeState);
+      this.getChildType(TextureRect).texture.changeState(this._active ? "active" : "inactive");
+      Utils.broadcast("playerCheckpoint", this)
     }
-
-    return new Checkpoint(pos, tex);
   }
 
   set active(newState) {
@@ -203,149 +165,184 @@ class Checkpoint extends StaticBox {
   get activationBox() {
     return this._activationBox;
   }
-
-  draw(renderer) {
-    // fillRect(this._position, this._size, this._active ? "#ffd46e" : "#d480d3");
-    renderer.drawTexture(this._position, this._size, this._texture.currentTex);
-  }
 }
 
-class Goal extends DynamicBox {
+class Goal extends Region {
   _takeoff = {time: 1500, active: false};
-  _texture;
-  static SIZE = {width: 512, height: 512};
+  _velocity = 0;
+  static SIZE = new Vector2(512, 512);
 
-  constructor(position, texture) {
-    super(position, Goal.SIZE, new DynamicAABB({x: (Goal.SIZE.width - 283) / 2, y: 0}, {x: 283, y: 0}, {x:0,y:0}, false));
-    log("Goal collider: " + JSON.stringify(this._collider.position))
-    this.gravityMultiplier = 0;
-    this._texture = texture;
+  constructor(position, name) {
+    super(position, Goal.SIZE, name);
   }
 
-  static async loadFromRaw(data, scale, textures) {
-    const pos = {
-      x: data.x * scale,
-      y: Utils.gameHeight - (data.y * scale)
-    };
-    let tex = null;
-    if (data.texture && data.texture != "") {
-      tex = await parseTex(Utils.parseObjectPath(`goal/${data.texture}`, textures), Goal.SIZE);
-    } else {
-      tex = new ColorTexture("#ff0000", true);
-    }
+  static async loadFromRaw(data, scale) {
+    const pos = data.pos.multiply(scale);
+    pos.y = Utils.gameHeight - pos.y;
 
-    return new Goal(pos, tex);
+    return new Goal(pos, data.name);
   }
 
   update(dt) {
-    if (this._takeoff.active) {
+    if (this._takeoff.active && this._takeoff.time > 0) {
       this._takeoff.time -= dt;
     }
-    if (this._takeoff.time <= 0) {
-      this._collider.acceleration.y = -0.0003;
+    if (this._takeoff.time <= 0 && this._takeoff.active) {
+      this._velocity -= 0.0003 * dt;
+      this._position.y += this._velocity * dt;
     }
 
-    if (this._position.y + this._size.height < -150) {
-      this._collider.acceleration.y = 0;
-      this._collider.velocity.y = 0;
+    if (this._position.y + this._size.y < -150) {
+      this._takeoff.active = false;
 
       alert("You finished the tutorial!");
       alert("Nice Job!");
-      running = false;
+      Utils.broadcast("togglePause");
     }
   }
 
-  startTakeoff() {
-    this._takeoff.active = true;
+  onRegionEnter(region) {
+    if (region instanceof Player) {
+      this._takeoff.active = true;
+      Utils.broadcast("playerWin");
+    }
   }
 
+  /*
   draw(renderer) {
     //fillRect(this._position, this._size, "#44ebd2");
     renderer.drawTexture(this._position, this._size, this._texture);
-  }
+  }*/
 }
 
-class Player extends DynamicBox {
-  _texture;
-  static SIZE = {width: 128, height: 128};
+class Player extends KinematicBody {
+  static SIZE = new Vector2(128, 128);
+  _spawn = Vector2.zero();
 
-  constructor(position, texture) {
-    super(position, Player.SIZE, new DynamicAABB({x: 0, y: 0}, Player.SIZE, {x: 0, y: 0}, true));
-    
+  _acceleration = Vector2.zero();
+  _velocity = Vector2.zero();
+
+  _gravityMultiplier = 1;
+  _haveReserveFlip = true;
+
+  _currentCheckpoint = null;
+
+  _inEndingAnimation = false;
+
+  constructor(position, name) {
+    super(position, Player.SIZE, name);
+
     log("PlayerSpawn: " + JSON.stringify(position));
-    this.spawn = {x: position.x, y: position.y};
-    this._texture = texture;
-    
-    this.gravityMultiplier = 1;
-    this.haveReserveFlip = true;
-    this.flipLeft = true;
-    this.currentCheckpoint = -1;
+    this._spawn = position.clone();
 
-    // Add Callbacks
-    this._collider.onSpriteEnter = this.onSpriteEnter;
+    Utils.listen("playerCheckpoint", checkpoint => {
+      this._spawn = checkpoint.position.clone();
+      this._currentCheckpoint = checkpoint;
+    });
+
+    Utils.listen("playerDie", () => {
+      this.die();
+    });
+
+    Utils.listen("playerWin", () => {
+      this._inEndingAnimation = true;
+      this.getChildType(TextureRect).texture.changeState("levelFinish");
+    });
   }
 
-  static async loadFromRaw(data, scale, textures) {
-    const pos = {
-      x: data.spawn.x * scale,
-      y: Utils.gameHeight - (data.spawn.y * scale)
-    };
-    let tex = null;
-    if (data.texture && data.texture != "") {
-      tex = await parseTex(Utils.parseObjectPath(`player/${data.texture}`, textures), Player.SIZE);
-    } else {
-      tex = new ColorTexture("#ff0000", true);
-    }
+  static async loadFromRaw(data, scale) {
+    const pos = data.pos.multiply(scale);
+    pos.y = Utils.gameHeight - pos.y;
 
-    return new Player(pos, tex);
+    return new Player(pos, data.name);
   }
 
+  /*
   draw(renderer) {
     //debugLine(this._position, {x: this._position.x + (this._collider.velocity.x * dt), y: this._position.y + (this._collider.velocity.y * dt)}, '#000' )
     log(this._texture);
     renderer.drawTexture(this._position, this._size, this._texture.currentTex);
-  }
+  }*/
   
   update() {
     //// Controlling ////
+    const onGround = this.isOnGround(this._gravityMultiplier > 0 ? Vector2.up() : Vector2.down());
+
     log("l: " + actions.left.active + " r: " + actions.right.active);
     log("result: " + (actions.left.active == actions.right.active));
-    if (actions.left.active == actions.right.active) { // XNOR Gate
-      this._collider.acceleration.x = 0;
+    if (actions.left.active == actions.right.active || !onGround) { // XNOR Gate
+      this._acceleration.x = 0;
     } else if (actions.left.active) {
-      this._collider.acceleration.x = -0.014;
+      if (onGround) {
+        this._acceleration.x = -0.014;
+      }
     } else if (actions.right.active) {
-      this._collider.acceleration.x = 0.014;
+      if (onGround) {
+        this._acceleration.x = 0.014;
+      }
     }
 
-    if (actions.jump.active && this.groundPlatform != null) {
-      this._collider.velocity.y = -2.5 * this.gravityMultiplier;
+    if ((actions.stepFrame.active && !actions.stepFrame.active)) {
+      Utils.broadcast("toggleFrame");
     }
-    if ((actions.gravFlip.active && !actions.gravFlip.stale) && (this.groundPlatform != null || this.haveReserveFlip)) {
+
+    log("OnGround: " + onGround);
+    if (actions.jump.active && onGround) {
+      log("jump")
+      this._velocity.y = -2.5 * this._gravityMultiplier;
+    }
+
+    if ((actions.gravFlip.active && !actions.gravFlip.stale) && (onGround || this._haveReserveFlip)) {
       actions.gravFlip.stale = true;
-      this.haveReserveFlip = this.groundPlatform != null;
-      this.gravityMultiplier *= -1;
-      this._texture.changeState(this.gravityMultiplier > 0 ? "normal" : "inverted");
+      this._haveReserveFlip = onGround;
+      this._gravityMultiplier *= -1;
+      this.getChildType(TextureRect).texture.changeState(this._gravityMultiplier > 0 ? "normal" : "inverted");
+      // this._texture.changeState(this.gravityMultiplier > 0 ? "normal" : "inverted");
     }
     
     //// Death Conditions ////
 
     // Void
     log(this._position, this._size);
-    log(this._position.y + this._size.height);
-    if ((this._position.y > Utils.gameHeight && this.gravityMultiplier > 0) || (this._position.y + this._size.height < 0 && this.gravityMultiplier < 0) || this._position.y < -192 || this._position.y > Utils.gameHeight + 192) {
+    log(this._position.y + this._size.y);
+    if ((this._position.y > Utils.gameHeight && this.gravityMultiplier > 0) || (this._position.y + this._size.y < 0 && this.gravityMultiplier < 0) || this._position.y < -192 || this._position.y > Utils.gameHeight + 192) {
       this.die();
     }
-
-    log("reaction: ", this._collider.onSpriteEnter);
   }
 
+  physicsUpdate(physics, dt) {
+    log("physics update!")
+    if (!this._inEndingAnimation) {
+      this._velocity = this._velocity.addVec(this._acceleration.multiply(dt));
+      this._velocity.y += physics.gravity * this._gravityMultiplier * dt;
+    } else {
+      this._velocity.y += physics.gravity * this._gravityMultiplier * dt;
+    }
+
+    if (this.isOnGround(this._gravityMultiplier > 0 ? Vector2.up() : Vector2.down())) this._velocity.x *= Math.pow(0.98700615741, dt); // How to derive base: Use a geometric ratio (y=k^x) and set y=0.8, x=1000/60. Reason for x is becuase 60 is frame rate, and 1000/60 is milliseconds per frame. Simplify
+
+
+    const colliderPos = this.getChildType(AABB).globalPos;
+    if (this._velocity.x * dt + colliderPos.x <= 0) {
+      this.teleportGlobal(new Vector2(0, colliderPos.y));
+      this._velocity.x = 0;
+    }
+
+    this.moveAndSlide(this._velocity, physics, dt);
+  }
+
+  onCollision(collision) {
+    if (collision.normal.equals(this._gravityMultiplier > 0 ? Vector2.up() : Vector2.down())) {
+      this._haveReserveFlip = true;
+    }
+  }
+/*
   onSpriteEnter(sprite) {
     log("Sprite Entered: ", sprite);
     if (sprite instanceof Spike) {
       this.die();
     } else if (sprite instanceof Checkpoint) {
-      alert("checkpoint")
+      log("checkpoint")
       this.spawn = sprite.position;
       this.currentCheckpoint = sprite;
       sprite.active = true;
@@ -374,20 +371,14 @@ class Player extends DynamicBox {
     }
     
     if (toGround) this.groundPlatform = null;
-  }
+  }*/
   
-  physicsUpdate() {}
-
   die() {
-    this._position = {
-      x: this.spawn.x,
-      y: this.spawn.y
-    };
-    this._collider.velocity = {x:0,y:0};
-    this._collider.acceleration = {x:0,y:0};
-    this.syncColliderPos();
-    this.gravityMultiplier = 1;
-    this._texture.changeState("normal");
+    this._position = this._spawn.clone();
+    this._velocity = Vector2.zero();
+    this._acceleration = Vector2.zero();
+    this._gravityMultiplier = 1;
+    this.getChildType(TextureRect).texture.changeState("normal");
   }
 }
 /*
@@ -428,7 +419,7 @@ const frame = beginTime => {
     }
     currentLevel.draw();
   } catch (e) {
-    alert(e.stack);
+    log(e.stack);
     running = false;
   }
 };
@@ -436,4 +427,4 @@ const frame = beginTime => {
 // setInterval(frame, 1000 / 60)
 currentLevel.load()
 .then(() => requestAnimationFrame(frame))
-.catch(error => { alert(error.stack); running = false });*/
+.catch(error => { log(error.stack); running = false });*/

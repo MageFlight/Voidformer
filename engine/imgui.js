@@ -14,13 +14,13 @@ class Imgui {
 
     return (
       mouseX > regionPos.x &&
-      mouseX < regionPos.x + regionSize.width &&
+      mouseX < regionPos.x + regionSize.x &&
       mouseY > regionPos.y &&
-      mouseY < regionPos.y + regionSize.height
+      mouseY < regionPos.y + regionSize.y
     );
   }
 
-  button(id, position, size, texture) {
+  button(id, position, size, normalTex, hotTex, activeTex) {
     if (this.mouseInRegion(position, size)) {
       // update hot and active items
       if (this._activeItem == 0 || this._activeItem == id) {
@@ -31,17 +31,16 @@ class Imgui {
       }
     }
 
-    viewport.save();
-    viewport.setTransform(1, 0, 0, 1, 0, 0); // Always display GUI on top
+    this._renderer.viewport.save();
+    this._renderer.viewport.setTransform(1, 0, 0, 1, 0, 0); // Always display GUI on top
     if (this._activeItem == id) {
-      texture.changeState('active');
+      activeTex.draw(position, this._renderer);
     } else if (this._hotItem == id) {
-      texture.changeState('hot');
+      hotTex.draw(position, this._renderer);
     } else {
-      texture.changeState('normal');
+      normalTex.draw(position, this._renderer);
     }
-    this._renderer.drawTexture(position, size, texture.currentTex);
-    viewport.restore();
+    this._renderer.viewport.restore();
 
     // If the button is hot and active, but mouse is up,
     // the user must have clicked.

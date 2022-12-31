@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="128" height="128" viewBox="0 0 128 128" xml:space="preserve">
+<desc>Created with Fabric.js 3.6.6</desc>
+<defs>
+</defs>
+<g transform="matrix(1 0 0 1 64 64)"  >
+<g style=""   >
+		<g transform="matrix(1 0 0 1 0 0)" clip-path="url(#CLIPPATH_9)"  >
+<clipPath id="CLIPPATH_9" >
+	<path transform="matrix(1 0 0 1 0 0) translate(-64, -64)" id="p.0" d="m 0 0 l 128 0 l 0 128 l -128 0 l 0 -128 z" stroke-linecap="round" />
+</clipPath>
+<path style="stroke: none; stroke-width: 1; stroke-dasharray: none; stroke-linecap: square; stroke-dashoffset: 0; stroke-linejoin: miter; stroke-miterlimit: 10; fill: rgb(0,0,0); fill-opacity: 0; fill-rule: evenodd; opacity: 1;"  transform=" translate(-64, -64)" d="m 0 0 l 128 0 l 0 128 l -128 0 z" stroke-linecap="round" />
+</g>
+		<g transform="matrix(1 0 0 1 0.04 0.01)" clip-path="url(#CLIPPATH_10)"  >
+<linearGradient id="SVGID_p.1_5" gradientUnits="userSpaceOnUse" gradientTransform="matrix(11.13 0 0 11.13 0 0)"  x1="-2.1163989592593393" y1="5.754697809631528" x2="5.756820189067303" y2="13.621650457651436">
+<stop offset="0%" style="stop-color:rgb(182,215,168);stop-opacity: 1"/>
+<stop offset="100%" style="stop-color:rgb(106,168,79);stop-opacity: 1"/>
+</linearGradient>
+<clipPath id="CLIPPATH_10" >
+	<path transform="matrix(1 0 0 1 -0.04 -0.01) translate(-64, -64)" id="p.0" d="m 0 0 l 128 0 l 0 128 l -128 0 l 0 -128 z" stroke-linecap="round" />
+</clipPath>
+<path style="stroke: none; stroke-width: 1; stroke-dasharray: none; stroke-linecap: square; stroke-dashoffset: 0; stroke-linejoin: miter; stroke-miterlimit: 10; fill: url(#SVGID_p.1_5); fill-rule: evenodd; opacity: 1;"  transform=" translate(-64.04, -64.01)" d="m 20.24147 38.090515 l 0 0 c 9.870802 0 17.872665 -8.001865 17.872665 -17.872667 l 51.848602 0 l 0 0 c 0 9.870802 8.001869 17.872667 17.872665 17.872667 l 0 51.848602 l 0 0 c -9.870796 0 -17.872665 8.001869 -17.872665 17.872665 l -51.848602 0 c 0 -9.870796 -8.0018635 -17.872665 -17.872665 -17.872665 z" stroke-linecap="round" />
+</g>
+		<g transform="matrix(1 0 0 1 0 0)" clip-path="url(#CLIPPATH_11)"  >
+<linearGradient id="SVGID_p.2_6" gradientUnits="userSpaceOnUse" gradientTransform="matrix(13.45 0 0 13.45 0 0)"  x1="-4.756816410383623" y1="4.7567851669911505" x2="4.756784785974169" y2="14.270421035894248">
+<stop offset="0%" style="stop-color:rgb(191,191,191);stop-opacity: 1"/>
+<stop offset="100%" style="stop-color:rgb(115,115,115);stop-opacity: 1"/>
+</linearGradient>
+<clipPath id="CLIPPATH_11" >
+	<path transform="matrix(1 0 0 1 0 0) translate(-64, -64)" id="p.0" d="m 0 0 l 128 0 l 0 128 l -128 0 l 0 -128 z" stroke-linecap="round" />
+</clipPath>
+<path style="stroke: none; stroke-width: 1; stroke-dasharray: none; stroke-linecap: square; stroke-dashoffset: 0; stroke-linejoin: miter; stroke-miterlimit: 10; fill: url(#SVGID_p.2_6); fill-rule: evenodd; opacity: 1;"  transform=" translate(-64, -64)" d="m -0.000094225725 -0.000094225725 l 127.99897 0 l 0 127.99897 l -127.99897 0 z m 20.264795 20.264795 l 0 87.469376 l 87.469376 0 l 0 -87.469376 z" stroke-linecap="round" />
+</g>
+		<g transform="matrix(1 0 0 1 0 0)" clip-path="url(#CLIPPATH_12)"  >
+<radialGradient id="SVGID_p.3_7" gradientUnits="userSpaceOnUse" gradientTransform="matrix(6.42 0 0 6.42 0 0)"  cx="9.974467641279613" cy="9.974467641279613" r="6.416321277618408" fx="9.974467641279613" fy="9.974467641279613">
+<stop offset="0%" style="stop-color:rgb(219,212,235);stop-opacity: 1"/>
+<stop offset="100%" style="stop-color:rgb(145,128,187);stop-opacity: 1"/>
+</radialGradient>
+<clipPath id="CLIPPATH_12" >
+	<path transform="matrix(1 0 0 1 0 0) translate(-64, -64)" id="p.0" d="m 0 0 l 128 0 l 0 128 l -128 0 l 0 -128 z" stroke-linecap="round" />
+</clipPath>
+<path style="stroke: none; stroke-width: 1; stroke-dasharray: none; stroke-linecap: square; stroke-dashoffset: 0; stroke-linejoin: miter; stroke-miterlimit: 10; fill: url(#SVGID_p.3_7); fill-rule: evenodd; opacity: 1;"  transform=" translate(-64, -64)" d="m 34.888386 63.99939 l 0 0 c 0 -16.077564 13.03344 -29.111004 29.111004 -29.111004 l 0 0 c 7.7207184 0 15.125221 3.0670433 20.584595 8.526417 c 5.459366 5.4593697 8.526413 12.863869 8.526413 20.584587 l 0 0 c 0 16.077568 -13.03344 29.111008 -29.111008 29.111008 l 0 0 c -16.077564 0 -29.111004 -13.03344 -29.111004 -29.111008 z" stroke-linecap="round" />
+</g>
+		<g transform="matrix(1 0 0 1 0 0)" clip-path="url(#CLIPPATH_13)"  >
+<radialGradient id="SVGID_p.4_8" gradientUnits="userSpaceOnUse" gradientTransform="matrix(5.37 0 0 5.37 0 0)"  cx="11.90761983921721" cy="11.90761983921721" r="5.374658584594727" fx="11.90761983921721" fy="11.90761983921721">
+<stop offset="0%" style="stop-color:rgb(173,200,243);stop-opacity: 1"/>
+<stop offset="42%" style="stop-color:rgb(92,150,241);stop-opacity: 1"/>
+<stop offset="100%" style="stop-color:rgb(92,150,241);stop-opacity: 1"/>
+</radialGradient>
+<clipPath id="CLIPPATH_13" >
+	<path transform="matrix(1 0 0 1 0 0) translate(-64, -64)" id="p.0" d="m 0 0 l 128 0 l 0 128 l -128 0 l 0 -128 z" stroke-linecap="round" />
+</clipPath>
+<path style="stroke: none; stroke-width: 1; stroke-dasharray: none; stroke-linecap: square; stroke-dashoffset: 0; stroke-linejoin: miter; stroke-miterlimit: 10; fill: url(#SVGID_p.4_8); fill-rule: evenodd; opacity: 1;"  transform=" translate(-64, -64)" d="m 43.57323 63.99939 l 20.426159 -20.426159 l 20.426163 20.426159 l -20.426163 20.426163 z" stroke-linecap="round" />
+</g>
+</g>
+</g>
+</svg>

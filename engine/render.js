@@ -1,44 +1,60 @@
 let textureSlots = {};
-let loadedImages = {};
 
 const canvas = document.querySelector('canvas');
 const viewport = canvas.getContext('2d');
 let currentTileRNG = 0;
 
 
-class Texture {
-  _data;
-  _type;
+class TextureRect extends Sprite {
+  _texture;
 
-  constructor(type) {
-    this._type = type;
+  constructor(position, size, texture, name) {
+    super(position, size, name);
+    log("tex: " + JSON.stringify(texture));
+    this._texture = texture;
   }
 
-  set data(newData) {
-    this._data = newData;
+  set texture(newTex) {
+    this._texture = newTex;
   }
 
-  get data() {
-    return this._data;
+  get texture() {
+    return this._texture;
   }
 
-  get type() {
-    return this._type;
-  }
-
-  async load() {
+  draw(renderer) {
+    this._texture.draw(this.globalPos, renderer);
   }
 }
+/*
+class MultiStateTex extends TextureRect {
+  static genID = 0;
 
-class MultiStateTex extends Texture {
   _textures = {};
   _currentState = "";
 
-  constructor(states, initialState) {
-    super("multi");
+  constructor(position, size, states, initialState, name="multiStateTex") {
+    super(position, size, name == "multiStateTex" ? name + (MultiStateTex.genID++) : name);
     log("MultitexStates:", states);
     this._textures = states;
     this._currentState = initialState;
+  }
+
+  static async loadFromRaw(data, scale) {
+    const pos = data.pos.multiply(scale);
+    pos.y = Utils.gameHeight - pos.y;
+    const size = data.size.multiply(scale);
+
+    const states = {};
+    const stateKeys = Object.keys(data.states);
+    for (let i = 0; i < stateKeys.length; i++) {
+      const stateKey = stateKeys[i];
+      states[stateKey] = await data.states[stateKey].type.loadFromRaw(data.states[stateKey], scale);
+    }
+
+    const tex = new MultiStateTex(pos, size, states, data.initialState, data.name);
+    await tex.load();
+    return tex;
   }
 
   changeState(newState) {
@@ -68,51 +84,110 @@ class MultiStateTex extends Texture {
       await this._textures[stateKeys[i]].load();
     }
   }
+
+  draw(renderer) {
+    this._textures[this._currentState].draw(renderer);
+  }
 }
 
-class ColorTexture extends Texture {
-  _color;
+class ColorTextureRect extends TextureRect {
+  static genID = 0;
 
-  constructor(color, fill = true) {
-    super((fill ? "f" : "s") + "Rect");
+  _color;
+  _fill;
+
+
+  constructor(position, size, color, fill = true, name="colorTexture") {
+    super(position, size, name == "colorTexture" ? name + (ColorTexture.genID++) : name);
     this._color = color;
+    this._fill = fill;
+  }
+
+  static async loadFromRaw(data, scale) {
+    const pos = data.pos.multiply(scale);
+    pos.y = Utils.gameHeight - pos.y;
+    const size = data.size.multiply(scale);
+
+    if (!data.color.match(/^#(([\da-fA-F]){6}|([0-9a-f])(\3{2}))$/)) {
+      throw new Error("Invalid Color: " + data.color);
+    }
+    const colorTex = new ColorTexture(pos, size, data.color, data.fill, data.name);
+    await colorTex.load();
+    return colorTex;
   }
 
   async load() {
     this.data = this._color;
   }
+
+  draw(renderer) {
+    if (this._fill) {
+      renderer.fillRect(this._position, this._size, this._data);
+    } else {
+      renderer.strokeRect(this._position, this._size, this._data);
+    }
+  }
 }
 
-class ImgTexture extends Texture {
+class ImgTextureRect extends TextureRect {
+  static genID = 0;
+
   _src;
 
-  constructor(src = "") {
-    super("img");
+  constructor(position, size, src = "", name="imgTexture") {
+    super(position, size, "img", name == "imgTexture" ? name + (ImgTexture.genID++) : name);
     this._src = src;
+  }
+
+  static async loadFromRaw(data, scale) {
+    const pos = data.pos.multiply(scale);
+    pos.y = Utils.gameHeight - pos.y;
+    const size = data.size.multiply(scale);
+
+    console.log(pos);
+    const imgTex = new ImgTexture(pos, size, data.src, data.name);
+    await imgTex.load();
+    return imgTex;
   }
 
   async load() {
     log("loadingStaticTex: " + this._src);
-    this.data = await getImage(this._src);
+    this._data = await getImage(this._src);
+  }
+
+  draw(renderer) {
+    log("drawing")
+    renderer.drawImage(this._position, this._size, this._data);
   }
 }
 
-class TiledTexture extends Texture {
+class TiledTextureRect extends TextureRect {
+  static genID = 0;
+
   _tileSize = 64; // Assume tiles are square
   _sources = [];
-  _size;
   _rotation;
   _tileHor;
   _tileVer;
 
-  constructor(size, imageSize, rotation, tileDirection, sources) {
-    super("img");
-    this._tileSize = imageSize;
+  constructor(position, size, sources, tileSize, rotation = 0, tileDirection = "all", name="tiledTexture") {
+    super(position, size, "img", name == "tiledTexture" ? name + (TiledTexture.genID++) : name);
+    this._tileSize = tileSize;
     this._sources = sources;
-    this._size = size;
     this._rotation = rotation;
     this._tileHor = tileDirection == "all" || tileDirection == "hor";
     this._tileVer = tileDirection == "all" || tileDirection == "ver";
+  }
+
+  static async loadFromRaw(data, scale) {
+    const pos = data.pos.multiply(scale);
+    pos.y = Utils.gameHeight - pos.y;
+    const size = data.size.multiply(scale);
+
+    
+    const tiledTex = new TiledTexture(pos, size, data.sources, data.tileSize.multiply(scale), data.rotation, data.tileDirection, data.name);
+    await tiledTex.load();
+    return tiledTex;
   }
 
   async load() {
@@ -178,9 +253,13 @@ class TiledTexture extends Texture {
     
     this.data = tileCanvas;
   }
-}
 
-async function parseTex(data, size) {
+  draw(renderer) {
+    renderer.drawImage(this._position, this._size, this._data);
+  }
+}*/
+
+/*async function parseTex(data, size) {
   let tex;
 
   log("rawData: " + JSON.stringify(data))
@@ -225,28 +304,7 @@ async function parseTex(data, size) {
   }
 
   return tex;
-}
-
-async function getImage(src) {
-  log("fetching image " + src)
-  if (!Object.hasOwn(loadedImages, src)) { // Check if the image is already loaded
-    log("loading img " + src)
-    loadedImages[src] = await loadImg(src);
-  }
-
-  return loadedImages[src];
-}
-
-function loadImg(src) {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.src = src;
-    img.onload = () => {
-      console.log("loaded image " + src);
-      resolve(img);
-    };
-  });
-};
+}*/
 
 class Renderer {
   _viewport;
@@ -288,19 +346,19 @@ class Renderer {
   }
 
   drawImage(position, size, data) {
-    viewport.drawImage(data, Math.floor(position.x * Renderer._scaleFactor), Math.floor(position.y * Renderer._scaleFactor), Math.ceil(size.width * Renderer._scaleFactor), Math.ceil(size.height * Renderer._scaleFactor));
+    this._viewport.drawImage(data, Math.floor(position.x * Renderer._scaleFactor), Math.floor(position.y * Renderer._scaleFactor), Math.ceil(size.x * Renderer._scaleFactor), Math.ceil(size.y * Renderer._scaleFactor));
   }
 
   fillRect(position, size, color) {
     log("fillRect: " + JSON.stringify(position) + " " + Renderer._scaleFactor);
     this._viewport.fillStyle = color;
-    this._viewport.fillRect(Math.floor(position.x * Renderer._scaleFactor), Math.floor(position.y * Renderer._scaleFactor), Math.ceil(size.width * Renderer._scaleFactor), Math.ceil(size.height * Renderer._scaleFactor));
+    this._viewport.fillRect(Math.floor(position.x * Renderer._scaleFactor), Math.floor(position.y * Renderer._scaleFactor), Math.ceil(size.x * Renderer._scaleFactor), Math.ceil(size.y * Renderer._scaleFactor));
   }
 
   strokeRect(position, size, color, width = 1) {
     this._viewport.lineWidth = width;
     this._viewport.strokeStyle = color;
-    this._viewport.strokeRect(Math.floor(position.x * Renderer._scaleFactor), Math.floor(position.y * Renderer._scaleFactor), Math.ceil(size.width * Renderer._scaleFactor), Math.ceil(size.height * Renderer._scaleFactor))
+    this._viewport.strokeRect(Math.floor(position.x * Renderer._scaleFactor), Math.floor(position.y * Renderer._scaleFactor), Math.ceil(size.x * Renderer._scaleFactor), Math.ceil(size.y * Renderer._scaleFactor))
   }
 
   debugLine(startPos, endPos, color, width = 1) {
@@ -318,8 +376,8 @@ class Renderer {
     this._viewport.fillText(text, Math.floor(position.x * Renderer._scaleFactor), Math.floor(position.y * Renderer._scaleFactor));
   }
 
-  translateTo(x, y) {
-    this._viewport.translate(-x * Renderer.scaleFactor - this._viewport.getTransform().e, y * Renderer.scaleFactor - this._viewport.getTransform().f);
+  translateTo(position) {
+    this._viewport.translate(-position.x * Renderer.scaleFactor - this._viewport.getTransform().e, position.y * Renderer.scaleFactor - this._viewport.getTransform().f);
   }
 
   setCanvasSize() {
@@ -350,5 +408,21 @@ class Renderer {
 
   static get scaleFactor() {
     return Renderer._scaleFactor;
+  }
+
+  get viewport() {
+    return this._viewport;
+  }
+
+  set viewport(newViewport) {
+    this._viewport = newViewport;
+  }
+
+  get canvas() {
+    return this._canvas;
+  }
+  
+  set canvas(newCanvas) {
+    this._canvas = newCanvas;
   }
 }

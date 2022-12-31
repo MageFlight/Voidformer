@@ -13,11 +13,11 @@ class MouseHandeler {
 
     addEventListener("mousedown", event => {
       this._buttonStates[event.button] = true;
-      // alert(JSON.stringify(this._buttonStates));
+      // log(JSON.stringify(this._buttonStates));
     });
     addEventListener("mouseup", event => {
       this._buttonStatesQueue[event.button] = false;
-      // alert(JSON.stringify(this._buttonStatesQueue));
+      // log(JSON.stringify(this._buttonStatesQueue));
     });
   }
 
