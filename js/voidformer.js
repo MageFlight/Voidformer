@@ -219,8 +219,22 @@ class Player extends KinematicBody {
   static SIZE = new Vector2(128, 128);
   _spawn = Vector2.zero();
 
-  _acceleration = Vector2.zero();
   _velocity = Vector2.zero();
+  _desiredHorizontalVelocity = 0;
+
+  _maxSpeed = 1.6;
+  _maxAcceleration = 0.002;
+  _maxAirAcceleration = 0.0014;
+  _deccelerationRate = 0.0049;
+  _airDeccelerationRate = 0.0008;
+  _airFriction = 0.9;
+  _turnRate = 1.8;
+
+  _jumpHeight = 200;
+  _maxAirJumps = 0;
+  _jumpsUsed = 0;
+  _downwardMovementMultiplier = 1.185;
+  _upwardMovementMultiplier = 0.9;
 
   _gravityMultiplier = 1;
   _haveReserveFlip = true;
@@ -266,32 +280,25 @@ class Player extends KinematicBody {
   
   update() {
     //// Controlling ////
-    const onGround = this.isOnGround(this._gravityMultiplier > 0 ? Vector2.up() : Vector2.down());
+    const groundPlatform = this.getGroundPlatform(this._gravityMultiplier > 0 ? Vector2.up() : Vector2.down());
+    const onGround = groundPlatform != null;
 
-    log("l: " + actions.left.active + " r: " + actions.right.active);
-    log("result: " + (actions.left.active == actions.right.active));
-    if (actions.left.active == actions.right.active || !onGround) { // XNOR Gate
-      this._acceleration.x = 0;
-    } else if (actions.left.active) {
-      if (onGround) {
-        this._acceleration.x = -0.014;
-      }
-    } else if (actions.right.active) {
-      if (onGround) {
-        this._acceleration.x = 0.014;
-      }
-    }
+    // Horizontal
+    this._desiredHorizontalVelocity =
+      (actions.left.active != actions.right.active) * (actions.left.active * -1 + actions.right.active) * // If both left or right are active, then 0. If left is active, then 1. If right is active, then -1.
+      this._maxSpeed *
+      !this._inEndingAnimation // If in ending animation, don't move.
+    
+    log("isPlatform: " + (groundPlatform instanceof StaticBody));
+    console.log(groundPlatform);
+    log("desiredMovement: " + this._desiredHorizontalVelocity);
+    log("ground: " + groundPlatform + " friction: " + (onGround ? groundPlatform.friction : 0));
 
     if ((actions.stepFrame.active && !actions.stepFrame.active)) {
       Utils.broadcast("toggleFrame");
     }
 
-    log("OnGround: " + onGround);
-    if (actions.jump.active && onGround) {
-      log("jump")
-      this._velocity.y = -2.5 * this._gravityMultiplier;
-    }
-
+    // Gravity Flip
     if ((actions.gravFlip.active && !actions.gravFlip.stale) && (onGround || this._haveReserveFlip)) {
       actions.gravFlip.stale = true;
       this._haveReserveFlip = onGround;
@@ -303,7 +310,6 @@ class Player extends KinematicBody {
     //// Death Conditions ////
 
     // Void
-    log(this._position, this._size);
     log(this._position.y + this._size.y);
     if ((this._position.y > Utils.gameHeight && this.gravityMultiplier > 0) || (this._position.y + this._size.y < 0 && this.gravityMultiplier < 0) || this._position.y < -192 || this._position.y > Utils.gameHeight + 192) {
       this.die();
@@ -311,17 +317,67 @@ class Player extends KinematicBody {
   }
 
   physicsUpdate(physics, dt) {
-    log("physics update!")
-    if (!this._inEndingAnimation) {
-      this._velocity = this._velocity.addVec(this._acceleration.multiply(dt));
-      this._velocity.y += physics.gravity * this._gravityMultiplier * dt;
+    const groundPlatform = this.getGroundPlatform(this._gravityMultiplier > 0 ? Vector2.up() : Vector2.down())
+    const onGround = groundPlatform != null;
+
+    // Horizontal Movement
+    let acceleration = 0;
+    if (this._desiredHorizontalVelocity == 0) { // Deceleration
+      acceleration = this._deccelerationRate * onGround + this._airDeccelerationRate * !onGround;
     } else {
-      this._velocity.y += physics.gravity * this._gravityMultiplier * dt;
+      acceleration = this._maxAcceleration * onGround + this._maxAirAcceleration * !onGround;
+
+      if (Math.sign(this._desiredHorizontalVelocity) != Math.sign(this._velocity.x)) { // Turning
+        acceleration *= this._turnRate;
+      }
+    }
+    
+    log("accel before friction: " + acceleration)
+    acceleration /= onGround ? groundPlatform.friction : this._airFriction;
+    this._velocity.x = Utils.moveTowards(this._velocity.x, this._desiredHorizontalVelocity, acceleration * dt);
+
+
+    //// Vertical Movement ////
+    const downDirection = Math.sign(this._gravityMultiplier); // If 1, normal. If -1, gravity is inverted
+
+    // Jumping
+    this._jumpsUsed *= !onGround; // Reset jumps used if on ground
+
+    if ((onGround || this._jumpsUsed < this._maxAirJumps) && actions.jump.active) {
+      this._jumpsUsed += 1 * !onGround;
+
+      let jumpSpeed = -Math.sqrt(-4 * this._jumpHeight * -(physics.gravity * this._upwardMovementMultiplier)) * downDirection; // Gravity is inverted because y-axis is inverted (relative to math direction) in Andromeda Game Engine.
+      log("jumpSpeed: " + jumpSpeed)
+
+      // Making jump height constant in air jump environments
+      if (this._velocity.y < 0) {
+        log("adjusting (up)")
+        jumpSpeed = Math.max(jumpSpeed - this._velocity.y, 0);
+      } else if (this._velocity.y > 0) {
+        log("adjusting (down)")
+        jumpSpeed -= this._velocity.y;
+      }
+
+      log("yvel: " + this._velocity.y + " finalJump: " + jumpSpeed)
+      this._velocity.y += jumpSpeed;
     }
 
-    if (this.isOnGround(this._gravityMultiplier > 0 ? Vector2.up() : Vector2.down())) this._velocity.x *= Math.pow(0.98700615741, dt); // How to derive base: Use a geometric ratio (y=k^x) and set y=0.8, x=1000/60. Reason for x is becuase 60 is frame rate, and 1000/60 is milliseconds per frame. Simplify
+    log("yVel before grav: " + this._velocity.y);
+    // Special Gravity
 
+    if (this._velocity.y * downDirection < 0) {
+      this._gravityMultiplier = this._upwardMovementMultiplier * downDirection;
+    } else if (this._velocity.y * downDirection > 0) {
+      this._gravityMultiplier = this._downwardMovementMultiplier * downDirection;
+    } else {
+      this._gravityMultiplier = downDirection;
+    }
+    log("gravMultiplier: " + this._gravityMultiplier);
 
+    // Apply Gravity
+    this._velocity.y += physics.gravity * this._gravityMultiplier * dt;
+
+    // Left world boundary
     const colliderPos = this.getChildType(AABB).globalPos;
     if (this._velocity.x * dt + colliderPos.x <= 0) {
       this.teleportGlobal(new Vector2(0, colliderPos.y));

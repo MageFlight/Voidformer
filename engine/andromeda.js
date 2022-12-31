@@ -425,7 +425,7 @@ class RigidBody extends CollisionObject {
 
 class StaticBody extends RigidBody {
   _bounce = 0;
-  _friction = 0.85;
+  _friction = 0.8;
 
   constructor(position, size, bounce, friction, name) {
     super(position, size, name);
@@ -518,6 +518,14 @@ class KinematicBody extends RigidBody {
     }
 
     return false;
+  }
+
+  getGroundPlatform(upDirection) {
+    for (let i = 0; i < this._lastSlideCollisions.length; i++) {
+      if (this._lastSlideCollisions[i].normal.equals(upDirection)) return this._lastSlideCollisions[i].collider;
+    }
+
+    return null;
   }
 }
 

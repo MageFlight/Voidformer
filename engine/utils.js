@@ -28,6 +28,21 @@ class Utils {
     return Utils._levelScale;
   }
 
+  /**
+   * Moves a value 'current' towards 'target'
+   * @param {Number} current The current value
+   * @param {Number} target The value to move towards
+   * @param {Number} maxDelta The maximum change that should be applied to the value
+   * @returns A linear interpolation that moves from current to target as far as possible without the speed exceeding maxDelta, and the result value not exceeding target.
+   */
+  static moveTowards = (current, target, maxDelta) => {
+    if (Math.abs(target - current) <= maxDelta) {
+      return target;
+    }
+
+    return current + Math.sign(target - current) * maxDelta;
+  }
+
   static broadcast(signal, data = null) {
     Utils._signals[signal].forEach(action => {
       action.call(action, data);
