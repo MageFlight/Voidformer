@@ -92,51 +92,53 @@ class TutorialLevel extends Level {
 			new CanvasLayer(new Transform(), "background")
 				.addChild(new TextureRect(Vector2.zero(), new Vector2(Utils.gameWidth, Utils.gameHeight), backgroundTexture, "backgroundImage")),
 			// Beginning Section
-			await this.platform(Vector2.levelPositionVector2(0, 2), Vector2.levelVector2(26, 2), "platform"),
-			new Hologram(Vector2.levelPositionVector2(5, 6), "Use A/D to move, and Space to jump!", 50, "#fff", "movementHologram"),
-			await this.platform(Vector2.levelPositionVector2(30, 5), Vector2.levelVector2(5, 5), "platform"),
-			await this.platform(Vector2.levelPositionVector2(40, 8), Vector2.levelVector2(5, 8), "platform"),
-			await this.platform(Vector2.levelPositionVector2(48, 1), Vector2.levelVector2(30, 1), "platform"),
-			await this.platform(Vector2.levelPositionVector2(54, Utils.levelHeight), Vector2.levelVector2(41, 2), "platform"),
+			await this.platform(Vector2.levelPositionVector2(0, 2), Vector2.levelVector2(20, 2), "platform"),
+			new Hologram(Vector2.levelPositionVector2(5, 6), "Use A/D to move, and Space to jump!", 45, "#fff", "movementHologram"),
+			await this.platform(Vector2.levelPositionVector2(27, 5), Vector2.levelVector2(8, 5), "platform"),
+			await this.platform(Vector2.levelPositionVector2(43, 8), Vector2.levelVector2(6, 8), "platform"),
+			await this.platform(Vector2.levelPositionVector2(60, 2), Vector2.levelVector2(30, 2), "platform"),
 			// First Inverted Section
-			new Hologram(Vector2.levelPositionVector2(57, 5), "Press Shift to reverse gravity!", 50, "#fff", "reverseGravityHologram"),
-			await this.platform(Vector2.levelPositionVector2(74, Utils.levelHeight), Vector2.levelVector2(4, 5), "platform"),
-			await this.platform(Vector2.levelPositionVector2(90, Utils.levelHeight - 2), Vector2.levelVector2(5, 4), "platform"),
-			await this.platform(Vector2.levelPositionVector2(100, Utils.levelHeight), Vector2.levelVector2(5, 9), "platform"),
-			await this.platform(Vector2.levelPositionVector2(110, Utils.levelHeight), Vector2.levelVector2(5, 9), "platform"),
-			await this.platform(Vector2.levelPositionVector2(120, Utils.levelHeight), Vector2.levelVector2(33, 8), "platform"),
+			new Hologram(Vector2.levelPositionVector2(64, 5), "Press Shift to reverse gravity!", 45, "#fff", "reverseGravityHologram"),
+			await this.platform(Vector2.levelPositionVector2(66, Utils.levelHeight), Vector2.levelVector2(39, 2), "platform"),
+			await this.platform(Vector2.levelPositionVector2(86, Utils.levelHeight), Vector2.levelVector2(4, 5), "platform"),
+			await this.platform(Vector2.levelPositionVector2(104, Utils.levelHeight), Vector2.levelVector2(6, 6), "platform"),
+			await this.platform(Vector2.levelPositionVector2(121, Utils.levelHeight), Vector2.levelVector2(8, 5), "platform"),
+			await this.platform(Vector2.levelPositionVector2(139, Utils.levelHeight), Vector2.levelVector2(8, 7), "platform"),
+			await this.platform(Vector2.levelPositionVector2(155, Utils.levelHeight), Vector2.levelVector2(38, 9), "platform"),
 			// Teleporter Section
-			new Hologram(Vector2.levelPositionVector2(126, 5), "Make sure to walk through the teleporters!", 50, "#fff", "teleporterReminderHologram"),
-			await this.platform(Vector2.levelPositionVector2(135, 2), Vector2.levelVector2(100, 2), "platform"),
-			await this.checkpoint(Vector2.levelPositionVector2(145, 4), "checkpoint"),
+			new Hologram(Vector2.levelPositionVector2(170, 5), "Make sure to walk through the teleporters!", 45, "#fff", "teleporterReminderHologram"),
+			await this.platform(Vector2.levelPositionVector2(173, 2), Vector2.levelVector2(134, 2), "platform"),
+			await this.checkpoint(Vector2.levelPositionVector2(191, 4), "checkpoint"),
 			// Spike Section
-			new Hologram(Vector2.levelPositionVector2(158, 6), "Avoid the spikes!", 50, "#fff", "spikeWarningHologram"),
-			await this.spike(Vector2.levelPositionVector2(163, 3), Vector2.levelVector2(2, 1), false, "spike"),
-			await this.spike(Vector2.levelPositionVector2(179, 3), Vector2.levelVector2(30, 1), false, "spike"),
-			await this.platform(Vector2.levelPositionVector2(180, 6), Vector2.levelVector2(7, 1), "platform"),
-			await this.platform(Vector2.levelPositionVector2(191, 8), Vector2.levelVector2(7, 1), "platform"),
-			await this.platform(Vector2.levelPositionVector2(202, 6), Vector2.levelVector2(6, 1), "platform"),
+			new Hologram(Vector2.levelPositionVector2(198, 6), "Avoid the spikes!", 45, "#fff", "spikeWarningHologram"),
+			await this.spike(Vector2.levelPositionVector2(207, 3), Vector2.levelVector2(2, 1), false, "spike"),
+			await this.spike(Vector2.levelPositionVector2(227, 3), Vector2.levelVector2(51, 1), false, "spike"),
+			await this.platform(Vector2.levelPositionVector2(230, 7), Vector2.levelVector2(7, 1), "platform"),
+			await this.platform(Vector2.levelPositionVector2(247, 9), Vector2.levelVector2(7, 1), "platform"),
+			await this.platform(Vector2.levelPositionVector2(266, 7), Vector2.levelVector2(7, 1), "platform"),
 			// Midair Reverse Gravity Section
-			new Hologram(Vector2.levelPositionVector2(215, 6), "You can reverse gravity in midair one time before touching the ground.", 50, "#fff", "midairGravityFlipHologram"),
-			await this.spike(Vector2.levelPositionVector2(234, 4), Vector2.levelVector2(1, 2), false, "spike"),
-			await this.platform(Vector2.levelPositionVector2(236, Utils.levelHeight), Vector2.levelVector2(55, 4), "platform"),
-			await this.spike(Vector2.levelPositionVector2(250, Utils.levelHeight - 4), Vector2.levelVector2(2, 2), true, "spike"),
-			await this.platform(Vector2.levelPositionVector2(262, Utils.levelHeight - 4), Vector2.levelVector2(1, 1), "platform"),
-			await this.platform(Vector2.levelPositionVector2(263, Utils.levelHeight - 4), Vector2.levelVector2(3, 2), "platform"),
-			await this.spike(Vector2.levelPositionVector2(264, Utils.levelHeight - 6), Vector2.levelVector2(1, 1), true, "spike"),
-			await this.platform(Vector2.levelPositionVector2(266, Utils.levelHeight - 4), Vector2.levelVector2(1, 1), "platform"),
-			await this.spike(Vector2.levelPositionVector2(290, Utils.levelHeight - 4), Vector2.levelVector2(1, 3), true, "spike"),
+			new Hologram(Vector2.levelPositionVector2(290, 6), "You can reverse gravity in midair one time before touching the ground.", 50, "#fff", "midairGravityFlipHologram"),
+			await this.spike(Vector2.levelPositionVector2(306, 4), Vector2.levelVector2(1, 2), false, "spike"),
+			await this.platform(Vector2.levelPositionVector2(306, Utils.levelHeight), Vector2.levelVector2(63, 4), "platform"),
+			await this.spike(Vector2.levelPositionVector2(332, Utils.levelHeight - 4), Vector2.levelVector2(2, 2), true, "spike"),
+			await this.platform(Vector2.levelPositionVector2(350, Utils.levelHeight - 4), Vector2.levelVector2(1, 1), "platform"),
+			await this.platform(Vector2.levelPositionVector2(351, Utils.levelHeight - 4), Vector2.levelVector2(3, 2), "platform"),
+			await this.spike(Vector2.levelPositionVector2(352, Utils.levelHeight - 6), Vector2.levelVector2(1, 1), true, "spike"),
+			await this.platform(Vector2.levelPositionVector2(354, Utils.levelHeight - 4), Vector2.levelVector2(1, 1), "platform"),
+			await this.spike(Vector2.levelPositionVector2(368, Utils.levelHeight - 4), Vector2.levelVector2(1, 3), true, "spike"),
 			// Home stretch to Rocket
-			await this.platform(Vector2.levelPositionVector2(292, 2), Vector2.levelVector2(60, 3), "platform"),
-			new Hologram(Vector2.levelPositionVector2(314, 4), "Get in the rocket to finish the level!", 50, "#fff", "rocketIndicatorHologram"),
-			new Goal(Vector2.levelPositionVector2(326, 10), "goal")
+			await this.platform(Vector2.levelPositionVector2(372, 2), Vector2.levelVector2(50, 3), "platform"),
+			new Hologram(Vector2.levelPositionVector2(387, 4), "Get in the rocket to finish the level!", 45, "#fff", "rocketIndicatorHologram"),
+			new Goal(Vector2.levelPositionVector2(407, 10), "goal")
 				.addChild(new AABB(Vector2.zero(), Goal.SIZE, true, "goalCollider"))
 				.addChild(new TextureRect(Vector2.zero(), Goal.SIZE, rocketTexture, "goalTexture")),
-			await this.platform(Vector2.levelPositionVector2(336, Utils.levelHeight), Vector2.levelVector2(3, Utils.levelHeight - 2), "platform"),
+			await this.platform(Vector2.levelPositionVector2(419, Utils.levelHeight), Vector2.levelVector2(3, Utils.levelHeight - 2), "platform"),
 			new Player(Vector2.levelPositionVector2(6, 4), "player")
 				.addChild(new AABB(Vector2.zero(), Player.SIZE))
 				.addChild(new TextureRect(Vector2.zero(), Player.SIZE, playerTex, "playerTex"))
-				.addChild(new Camera(Vector2.zero(), Vector2.levelPositionVector2(339, 0), 625, 750, 0, 0, false, true, true, "playerCamera"))
+				.addChild(new Camera(Vector2.zero(), Vector2.levelPositionVector2(422, 0), 625, 750, 0, 0, false, true, true, "playerCamera"))
+				.addChild(new Hologram(new Vector2(150, 30), "pos", 30, "#fff", "playerpos"))
+				.addChild(new Hologram(new Vector2(150, 70), "pos", 30, "#fff", "lvlplayerpos"))
 		];
 	}
 }

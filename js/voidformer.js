@@ -135,7 +135,7 @@ class Hologram extends Sprite {
   }
 
   draw(renderer) {
-    renderer.fillText(this._position, this._text, this._fontSize, this._color);
+    renderer.fillText(this.globalPos, this._text, this._fontSize, this._color);
   }
 }
 
@@ -279,6 +279,9 @@ class Player extends KinematicBody {
   }*/
   
   update() {
+    this.getChildName("playerpos").text = `(${Math.floor(this.globalPos.x / 64)}, ${Math.floor(this.globalPos.y / 64)})`;
+    this.getChildName("lvlplayerpos").text = `(${Math.floor(this.globalPos.x / 64)}, ${Math.floor((Utils.gameHeight - this.globalPos.y) / 64)})`;
+
     //// Controlling ////
     const groundPlatform = this.getGroundPlatform(this._gravityMultiplier > 0 ? Vector2.up() : Vector2.down());
     const onGround = groundPlatform != null;
