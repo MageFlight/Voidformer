@@ -136,7 +136,7 @@ class TutorialLevel extends Level {
 				.addChild(new AABB(Vector2.zero(), Goal.SIZE, true, "goalCollider"))
 				.addChild(new TextureRect(Vector2.zero(), Goal.SIZE, rocketTexture, "goalTexture")),
 			await this.platform(Vector2.levelPositionVector2(419, Utils.levelHeight), Vector2.levelVector2(3, Utils.levelHeight - 2), "platform"),
-			new Player(Vector2.levelPositionVector2(6, 4), "player")
+			new Player(Vector2.levelPositionVector2(209, 4), "player") // Spawn used to be 6, 4
 				.addChild(new AABB(Vector2.zero(), Player.SIZE))
 				.addChild(new TextureRect(Vector2.zero(), Player.SIZE, playerTex, "playerTex"))
 				.addChild(new Camera(Vector2.zero(), Vector2.levelPositionVector2(422, 0), 625, 750, 0, 0, false, true, true, "playerCamera"))

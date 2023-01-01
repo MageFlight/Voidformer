@@ -378,10 +378,8 @@ class Player extends KinematicBody {
 
     if (this._velocity.y * downDirection < 0) {
       this._gravityMultiplier = this._upwardMovementMultiplier * downDirection;
-    } else if (this._velocity.y * downDirection > 0) {
+    } else if (this._velocity.y * downDirection >= 0) {
       this._gravityMultiplier = this._downwardMovementMultiplier * downDirection;
-    } else {
-      this._gravityMultiplier = downDirection;
     }
     log("gravMultiplier: " + this._gravityMultiplier);
 
