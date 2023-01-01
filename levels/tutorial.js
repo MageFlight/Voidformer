@@ -82,10 +82,13 @@ class TutorialLevel extends Level {
 		const backgroundTexture = await ImageTexture.create("assets/background/stars.svg");
 		// const playerTex = await ImageTexture.create("assets/player/restingNormalTest.svg");
 		const playerTex = await MultiStateTex.create({
-			normal: await ImageTexture.create("assets/player/restingNormalV2.svg"),
-			inverted: await ImageTexture.create("assets/player/restingInvertedV2.svg"),
-			levelFinish: await ImageTexture.create("assets/player/levelFinishNormalV2.svg")
-		}, "normal");
+			normalRight: await ImageTexture.create("assets/player/V3/rightNormalV3.svg"),
+			normalLeft: await ImageTexture.create("assets/player/V3/leftNormalV3.svg"),
+			normalFinish: await ImageTexture.create("assets/player/V3/levelFinishNormalV3.svg"),
+			invertedRight: await ImageTexture.create("assets/player/V3/rightInvertedV3.svg"),
+			invertedLeft: await ImageTexture.create("assets/player/V3/leftInvertedV3.svg"),
+			invertedFinish: await ImageTexture.create("assets/player/V3/levelFinishInvertedV3.svg")
+		}, "normalRight");
 		const rocketTexture = await ImageTexture.create("assets/goal/rocket.svg");
 
 		return [

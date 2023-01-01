@@ -86,6 +86,7 @@ class MultiStateTex extends Texture {
         log("Changing Multi State: " + newState);
         log("options: " + JSON.stringify(this._states));
         this._currentState = newState;
+        log("currentState: " + this._currentState);
         this._data = this._states[this._currentState].data;
         this._sizeOverride = this._states[this._currentState].sizeOverride;
         log("New SizeOverride: " + JSON.stringify(this._sizeOverride));

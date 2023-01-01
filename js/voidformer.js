@@ -222,6 +222,8 @@ class Player extends KinematicBody {
   _velocity = Vector2.zero();
   _desiredHorizontalVelocity = 0;
 
+  _textureDirection = Vector2.one();
+
   _maxSpeed = 1.6;
   _maxAcceleration = 0.002;
   _maxAirAcceleration = 0.0014;
@@ -260,7 +262,6 @@ class Player extends KinematicBody {
 
     Utils.listen("playerWin", () => {
       this._inEndingAnimation = true;
-      this.getChildType(TextureRect).texture.changeState("levelFinish");
     });
   }
 
@@ -306,16 +307,23 @@ class Player extends KinematicBody {
       actions.gravFlip.stale = true;
       this._haveReserveFlip = onGround;
       this._gravityMultiplier *= -1;
-      this.getChildType(TextureRect).texture.changeState(this._gravityMultiplier > 0 ? "normal" : "inverted");
-      // this._texture.changeState(this.gravityMultiplier > 0 ? "normal" : "inverted");
     }
     
     //// Death Conditions ////
 
     // Void
     log(this._position.y + this._size.y);
-    if ((this._position.y > Utils.gameHeight && this.gravityMultiplier > 0) || (this._position.y + this._size.y < 0 && this.gravityMultiplier < 0) || this._position.y < -192 || this._position.y > Utils.gameHeight + 192) {
+    if ((this._position.y > Utils.gameHeight && this._gravityMultiplier > 0) || (this._position.y + this._size.y < 0 && this._gravityMultiplier < 0) || this._position.y < -192 || this._position.y > Utils.gameHeight + 192) {
       this.die();
+    }
+
+    //// Texture Updates ////
+
+    // Horizontal
+    const horizontalMovementSign = Math.sign(this._desiredHorizontalVelocity);
+    if (this._textureDirection.y != Math.sign(this._gravityMultiplier) || (this._textureDirection.x != horizontalMovementSign && horizontalMovementSign != 0)) {
+      this._textureDirection = new Vector2(horizontalMovementSign, Math.sign(this._gravityMultiplier));
+      this.getChildType(TextureRect).texture.changeState((this._textureDirection.y >= 0 ? "normal" : "inverted") + (this._textureDirection.x >= 0 ? "Right" : "Left"));
     }
   }
 
@@ -437,7 +445,6 @@ class Player extends KinematicBody {
     this._velocity = Vector2.zero();
     this._acceleration = Vector2.zero();
     this._gravityMultiplier = 1;
-    this.getChildType(TextureRect).texture.changeState("normal");
   }
 }
 /*
