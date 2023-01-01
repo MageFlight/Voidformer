@@ -183,12 +183,28 @@ class Goal extends Region {
   }
 
   start() {
+    this.getChildName("changeVehicleHint").visible = false;
+
     Utils.listen("changeVehicle", vehicle => {
       if (vehicle == this) {
         this._takeoff.active = true;
         this.getChildType(TextureRect).texture.changeState("full");
       }
     });
+
+    this.getChildName("vehicleChangeRange").onRegionEnter = region => {
+      if (region instanceof Player) {
+        this.getChildName("changeVehicleHint").visible = true;
+        this._nearbyVehicle = region;
+      }
+    }
+
+    this.getChildName("vehicleChangeRange").onRegionExit = region => {
+      if (region instanceof Player) {
+        this.getChildName("changeVehicleHint").visible = false;
+        this._nearbyVehicle = null;
+      }
+    }
   }
 
   static async loadFromRaw(data, scale) {
@@ -199,6 +215,14 @@ class Goal extends Region {
   }
 
   update(dt) {
+    //// Change Vehicle ////
+    if (this._nearbyVehicle != null && actions.changeVehicle.active && !actions.changeVehicle.stale) {
+      actions.changeVehicle.stale = true;
+
+      this.getChildName("changeVehicleHint").visible = false;
+      Utils.broadcast("changeVehicle", this);
+    }
+
     if (this._takeoff.active && this._takeoff.time > 0) {
       this._takeoff.time -= dt;
     }
@@ -253,7 +277,7 @@ class Player extends KinematicBody {
 
   _currentCheckpoint = null;
 
-  _inEndingAnimation = false;
+  _activeVehicle = true;
 
   constructor(position, name) {
     super(position, Player.SIZE, name);
@@ -272,19 +296,12 @@ class Player extends KinematicBody {
       this.die();
     });
 
-    this.getChildName("vehicleChangeRange").onRegionEnter = region => {
-      if (region instanceof Goal) {
-        this.getChildName("playerHint").text = "Press E - Change Vehicle";
-        this._nearbyVehicle = region;
+    Utils.listen("changeVehicle", vehicle => {
+      if (vehicle != this) {
+        this._activeVehicle = false;
+        this.getChildType(TextureRect).texture.changeState((this._textureDirection.y >= 0 ? "normal" : "inverted") + "Empty");
       }
-    }
-
-    this.getChildName("vehicleChangeRange").onRegionExit = region => {
-      if (region instanceof Goal) {
-        this.getChildName("playerHint").text = "";
-        this._nearbyVehicle = null;
-      }
-    }
+    })
   }
 
   static async loadFromRaw(data, scale) {
@@ -314,14 +331,14 @@ class Player extends KinematicBody {
     this._desiredHorizontalVelocity =
       (actions.left.active != actions.right.active) * (actions.left.active * -1 + actions.right.active) * // If both left or right are active, then 0. If left is active, then 1. If right is active, then -1.
       this._maxSpeed *
-      !this._inEndingAnimation // If in ending animation, don't move.
+      this._activeVehicle // Only move if this is the active vehicle.
     
     if ((actions.stepFrame.active && !actions.stepFrame.active)) {
       Utils.broadcast("toggleFrame");
     }
 
     // Gravity Flip
-    if ((actions.gravFlip.active && !actions.gravFlip.stale) && (onGround || this._haveReserveFlip) && !this._inEndingAnimation) {
+    if ((actions.gravFlip.active && !actions.gravFlip.stale) && (onGround || this._haveReserveFlip) && this._activeVehicle) {
       actions.gravFlip.stale = true;
       this._haveReserveFlip = onGround;
       this._gravityMultiplier *= -1;
@@ -335,27 +352,12 @@ class Player extends KinematicBody {
       this.die();
     }
 
-    //// Change Vehicle ////
-    
-    if (this._nearbyVehicle != null && actions.changeVehicle.active && !actions.changeVehicle.stale) {
-      actions.changeVehicle.stale = true;
-
-      if (this._nearbyVehicle instanceof Goal) {
-        this._inEndingAnimation = true;
-        this.getChildType(TextureRect).texture.changeState((this._textureDirection.y >= 0 ? "normal" : "inverted") + "Finish");  
-      }
-
-      this.getChildName("playerHint").text = "";
-      Utils.broadcast("changeVehicle", this._nearbyVehicle);
-
-    }
-
     //// Texture Updates ////
 
     // Horizontal
     let currentMovementSigns = new Vector2(Math.sign(this._desiredHorizontalVelocity), Math.sign(this._gravityMultiplier));
     if (currentMovementSigns.x == 0) currentMovementSigns.x = this._textureDirection.x;
-    if (!this._textureDirection.equals(currentMovementSigns)) {
+    if (!this._textureDirection.equals(currentMovementSigns) && this._activeVehicle) {
       this._textureDirection = currentMovementSigns;
       this.getChildType(TextureRect).texture.changeState((this._textureDirection.y >= 0 ? "normal" : "inverted") + (this._textureDirection.x >= 0 ? "Right" : "Left"));
     }
@@ -388,7 +390,7 @@ class Player extends KinematicBody {
     // Jumping
     this._jumpsUsed *= !onGround; // Reset jumps used if on ground
 
-    if ((onGround || this._jumpsUsed < this._maxAirJumps) && actions.jump.active && !this._inEndingAnimation) {
+    if ((onGround || this._jumpsUsed < this._maxAirJumps) && actions.jump.active && this._activeVehicle) {
       this._jumpsUsed += 1 * !onGround;
 
       let jumpSpeed = -Math.sqrt(-4 * this._jumpHeight * -(physics.gravity * this._upwardMovementMultiplier)) * downDirection; // Gravity is inverted because y-axis is inverted (relative to math direction) in Andromeda Game Engine.

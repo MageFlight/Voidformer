@@ -84,10 +84,10 @@ class TutorialLevel extends Level {
 		const playerTex = await MultiStateTex.create({
 			normalRight: await ImageTexture.create("assets/player/V3/rightNormalV3.svg"),
 			normalLeft: await ImageTexture.create("assets/player/V3/leftNormalV3.svg"),
-			normalFinish: await ImageTexture.create("assets/player/V3/levelFinishNormalV3.svg"),
+			normalEmpty: await ImageTexture.create("assets/player/V3/emptyNormalV3.svg"),
 			invertedRight: await ImageTexture.create("assets/player/V3/rightInvertedV3.svg"),
 			invertedLeft: await ImageTexture.create("assets/player/V3/leftInvertedV3.svg"),
-			invertedFinish: await ImageTexture.create("assets/player/V3/levelFinishInvertedV3.svg")
+			invertedEmpty: await ImageTexture.create("assets/player/V3/emptyInvertedV3.svg")
 		}, "normalRight");
 		const rocketTexture = await MultiStateTex.create({
 			empty: await ImageTexture.create("assets/goal/rocketEmpty.svg"),
@@ -136,15 +136,15 @@ class TutorialLevel extends Level {
 			await this.platform(Vector2.levelPositionVector2(372, 2), Vector2.levelVector2(50, 3), "platform"),
 			new Goal(Vector2.levelPositionVector2(409, 10), "goal")
 				.addChild(new AABB(Vector2.zero(), Goal.SIZE, true, "goalCollider"))
-				.addChild(new TextureRect(Vector2.zero(), Goal.SIZE, rocketTexture, "goalTexture")),
+				.addChild(new TextureRect(Vector2.zero(), Goal.SIZE, rocketTexture, "goalTexture"))
+				.addChild(new Region(Vector2.levelVector2(-3, -3), Goal.SIZE.addVec(Vector2.levelVector2(6, 6)), "vehicleChangeRange")
+					.addChild(new AABB(Vector2.zero(), Goal.SIZE.addVec(Vector2.levelVector2(6, 6)), true, "vehicleChangeRange")))
+				.addChild(new Hologram(new Vector2(0, -35), "Press E - Change Vehicle", 30, "#fff", "changeVehicleHint")),
 			await this.platform(Vector2.levelPositionVector2(419, Utils.levelHeight), Vector2.levelVector2(3, Utils.levelHeight - 2), "platform"),
 			new Player(Vector2.levelPositionVector2(6, 4), "player")
 				.addChild(new AABB(Vector2.zero(), Player.SIZE))
 				.addChild(new TextureRect(Vector2.zero(), Player.SIZE, playerTex, "playerTex"))
 				.addChild(new Camera(Vector2.zero(), Vector2.levelPositionVector2(422, 0), 625, 750, 0, 0, false, true, true, "playerCamera"))
-				.addChild(new Region(Vector2.levelVector2(-3, -3), Player.SIZE.addVec(Vector2.levelVector2(6, 6)), "vehicleChangeRange")
-					.addChild(new AABB(Vector2.zero(), Player.SIZE.addVec(Vector2.levelVector2(6, 6)), true, "vehicleChangeRange")))
-				.addChild(new Hologram(new Vector2(150, 79), "", 30, "#fff", "playerHint"))
 				// .addChild(new Hologram(new Vector2(150, 30), "pos", 30, "#fff", "playerpos"))
 				// .addChild(new Hologram(new Vector2(150, 70), "pos", 30, "#fff", "lvlplayerpos"))
 		];
