@@ -68,7 +68,10 @@ class Main {
           this.start();
         }
 
-        if (this._updateView) this._currentView.update(this._dt);
+        if (this._updateView) {
+          this._currentView.update(this._dt);
+          Utils.timerUpdate(this._dt);
+        }
         if (this._drawView) {
           this._renderer.clear('#00ff00');
           this._currentView.draw(this._renderer);

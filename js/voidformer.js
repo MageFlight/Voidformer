@@ -55,6 +55,12 @@ const actions = {
     stale: false,
     keys: ['KeyI'],
     onPress: null
+  },
+  changeVehicle: {
+    active: false,
+    stale: false,
+    keys: ['KeyE'],
+    onPress: null
   }
 };
 
@@ -170,7 +176,7 @@ class Checkpoint extends Region {
 class Goal extends Region {
   _takeoff = {time: 1500, active: false};
   _velocity = 0;
-  static SIZE = new Vector2(512, 512);
+  static SIZE = new Vector2(320, 512);
 
   constructor(position, name) {
     super(position, Goal.SIZE, name);
@@ -184,6 +190,15 @@ class Goal extends Region {
   }
 
   update(dt) {
+    for (let i = 0; i < this._regionsInside.length; i++) {
+      if (this._regionsInside[i] instanceof Player && actions.changeVehicle.active && !actions.changeVehicle.stale) {
+        actions.changeVehicle.stale = true;
+        this._takeoff.active = true;
+        this.getChildType(TextureRect).texture.changeState("full");
+        Utils.broadcast("playerWin");
+      }
+    }
+
     if (this._takeoff.active && this._takeoff.time > 0) {
       this._takeoff.time -= dt;
     }
@@ -198,13 +213,6 @@ class Goal extends Region {
       alert("You finished the tutorial!");
       alert("Nice Job!");
       Utils.broadcast("togglePause");
-    }
-  }
-
-  onRegionEnter(region) {
-    if (region instanceof Player) {
-      this._takeoff.active = true;
-      Utils.broadcast("playerWin");
     }
   }
 
@@ -262,6 +270,7 @@ class Player extends KinematicBody {
 
     Utils.listen("playerWin", () => {
       this._inEndingAnimation = true;
+      this.getChildType(TextureRect).texture.changeState((this._textureDirection.y >= 0 ? "normal" : "inverted") + "Finish");
     });
   }
 
@@ -280,6 +289,7 @@ class Player extends KinematicBody {
   }*/
   
   update() {
+    console.log("regions inside ", this._regionsInside)
     this.getChildName("playerpos").text = `(${Math.floor(this.globalPos.x / 64)}, ${Math.floor(this.globalPos.y / 64)})`;
     this.getChildName("lvlplayerpos").text = `(${Math.floor(this.globalPos.x / 64)}, ${Math.floor((Utils.gameHeight - this.globalPos.y) / 64)})`;
 
@@ -293,17 +303,12 @@ class Player extends KinematicBody {
       this._maxSpeed *
       !this._inEndingAnimation // If in ending animation, don't move.
     
-    log("isPlatform: " + (groundPlatform instanceof StaticBody));
-    console.log(groundPlatform);
-    log("desiredMovement: " + this._desiredHorizontalVelocity);
-    log("ground: " + groundPlatform + " friction: " + (onGround ? groundPlatform.friction : 0));
-
     if ((actions.stepFrame.active && !actions.stepFrame.active)) {
       Utils.broadcast("toggleFrame");
     }
 
     // Gravity Flip
-    if ((actions.gravFlip.active && !actions.gravFlip.stale) && (onGround || this._haveReserveFlip)) {
+    if ((actions.gravFlip.active && !actions.gravFlip.stale) && (onGround || this._haveReserveFlip) && !this._inEndingAnimation) {
       actions.gravFlip.stale = true;
       this._haveReserveFlip = onGround;
       this._gravityMultiplier *= -1;
@@ -354,7 +359,7 @@ class Player extends KinematicBody {
     // Jumping
     this._jumpsUsed *= !onGround; // Reset jumps used if on ground
 
-    if ((onGround || this._jumpsUsed < this._maxAirJumps) && actions.jump.active) {
+    if ((onGround || this._jumpsUsed < this._maxAirJumps) && actions.jump.active && !this._inEndingAnimation) {
       this._jumpsUsed += 1 * !onGround;
 
       let jumpSpeed = -Math.sqrt(-4 * this._jumpHeight * -(physics.gravity * this._upwardMovementMultiplier)) * downDirection; // Gravity is inverted because y-axis is inverted (relative to math direction) in Andromeda Game Engine.

@@ -8,6 +8,8 @@ class Utils {
 
   static _signals = {};
 
+  static _timers = [];
+
   static get gameWidth() {
     return Utils._gameWidth;
   }
@@ -54,6 +56,37 @@ class Utils {
       Utils._signals[signal] = [];
     }
     Utils._signals[signal].push(action);
+  }
+
+  static timer(action, timeout, recurring) {
+    Utils._timers.push({
+      action: action,
+      length: timeout,
+      timeRemaining: 0,
+      recurring: recurring
+    }); 
+  }
+
+  static timerUpdate(dt) {
+    for (let i = 0; i < Utils._timers.length; i++) {
+      const timer = Utils._timers[i];
+      timer.timeRemaining += dt;
+      log("dt: " + dt);
+      log("timeRemaining: " + timer.timeRemaining);
+      log("Length: " + timer.length); 
+
+      if (timer.timeRemaining >= timer.length) {
+        timer.action.call(timer.action);
+
+        if (timer.recurring) {
+          log("rercurring.");
+          timer.timeRemaining = 0;
+          log("final time left: " + timer.timeRemaining);
+        } else {
+          Utils._timers.splice(i, 1);
+        }
+      }
+    }
   }
 
   static parseObjectPath(path, object) {

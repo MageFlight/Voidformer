@@ -89,7 +89,10 @@ class TutorialLevel extends Level {
 			invertedLeft: await ImageTexture.create("assets/player/V3/leftInvertedV3.svg"),
 			invertedFinish: await ImageTexture.create("assets/player/V3/levelFinishInvertedV3.svg")
 		}, "normalRight");
-		const rocketTexture = await ImageTexture.create("assets/goal/rocket.svg");
+		const rocketTexture = await MultiStateTex.create({
+			empty: await ImageTexture.create("assets/goal/rocketEmpty.svg"),
+			full: await ImageTexture.create("assets/goal/rocketFull.svg")
+		}, "empty");
 
 		return [
 			new CanvasLayer(new Transform(), "background")
@@ -131,8 +134,8 @@ class TutorialLevel extends Level {
 			await this.spike(Vector2.levelPositionVector2(368, Utils.levelHeight - 4), Vector2.levelVector2(1, 3), true, "spike"),
 			// Home stretch to Rocket
 			await this.platform(Vector2.levelPositionVector2(372, 2), Vector2.levelVector2(50, 3), "platform"),
-			new Hologram(Vector2.levelPositionVector2(387, 4), "Get in the rocket to finish the level!", 45, "#fff", "rocketIndicatorHologram"),
-			new Goal(Vector2.levelPositionVector2(407, 10), "goal")
+			new Hologram(Vector2.levelPositionVector2(397, 4), "Press 'E' to change vehicles!", 45, "#fff", "rocketIndicatorHologram"),
+			new Goal(Vector2.levelPositionVector2(409, 10), "goal")
 				.addChild(new AABB(Vector2.zero(), Goal.SIZE, true, "goalCollider"))
 				.addChild(new TextureRect(Vector2.zero(), Goal.SIZE, rocketTexture, "goalTexture")),
 			await this.platform(Vector2.levelPositionVector2(419, Utils.levelHeight), Vector2.levelVector2(3, Utils.levelHeight - 2), "platform"),
