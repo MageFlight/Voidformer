@@ -182,6 +182,15 @@ class Goal extends Region {
     super(position, Goal.SIZE, name);
   }
 
+  start() {
+    Utils.listen("changeVehicle", vehicle => {
+      if (vehicle == this) {
+        this._takeoff.active = true;
+        this.getChildType(TextureRect).texture.changeState("full");
+      }
+    });
+  }
+
   static async loadFromRaw(data, scale) {
     const pos = data.pos.multiply(scale);
     pos.y = Utils.gameHeight - pos.y;
@@ -190,15 +199,6 @@ class Goal extends Region {
   }
 
   update(dt) {
-    for (let i = 0; i < this._regionsInside.length; i++) {
-      if (this._regionsInside[i] instanceof Player && actions.changeVehicle.active && !actions.changeVehicle.stale) {
-        actions.changeVehicle.stale = true;
-        this._takeoff.active = true;
-        this.getChildType(TextureRect).texture.changeState("full");
-        Utils.broadcast("playerWin");
-      }
-    }
-
     if (this._takeoff.active && this._takeoff.time > 0) {
       this._takeoff.time -= dt;
     }
@@ -246,6 +246,8 @@ class Player extends KinematicBody {
   _downwardMovementMultiplier = 1.185;
   _upwardMovementMultiplier = 0.9;
 
+  _nearbyVehicle = null;
+
   _gravityMultiplier = 1;
   _haveReserveFlip = true;
 
@@ -258,7 +260,9 @@ class Player extends KinematicBody {
 
     log("PlayerSpawn: " + JSON.stringify(position));
     this._spawn = position.clone();
+  }
 
+  start() {
     Utils.listen("playerCheckpoint", checkpoint => {
       this._spawn = checkpoint.position.clone();
       this._currentCheckpoint = checkpoint;
@@ -268,10 +272,19 @@ class Player extends KinematicBody {
       this.die();
     });
 
-    Utils.listen("playerWin", () => {
-      this._inEndingAnimation = true;
-      this.getChildType(TextureRect).texture.changeState((this._textureDirection.y >= 0 ? "normal" : "inverted") + "Finish");
-    });
+    this.getChildName("vehicleChangeRange").onRegionEnter = region => {
+      if (region instanceof Goal) {
+        this.getChildName("playerHint").text = "Press E - Change Vehicle";
+        this._nearbyVehicle = region;
+      }
+    }
+
+    this.getChildName("vehicleChangeRange").onRegionExit = region => {
+      if (region instanceof Goal) {
+        this.getChildName("playerHint").text = "";
+        this._nearbyVehicle = null;
+      }
+    }
   }
 
   static async loadFromRaw(data, scale) {
@@ -290,8 +303,8 @@ class Player extends KinematicBody {
   
   update() {
     console.log("regions inside ", this._regionsInside)
-    this.getChildName("playerpos").text = `(${Math.floor(this.globalPos.x / 64)}, ${Math.floor(this.globalPos.y / 64)})`;
-    this.getChildName("lvlplayerpos").text = `(${Math.floor(this.globalPos.x / 64)}, ${Math.floor((Utils.gameHeight - this.globalPos.y) / 64)})`;
+    // this.getChildName("playerpos").text = `(${Math.floor(this.globalPos.x / 64)}, ${Math.floor(this.globalPos.y / 64)})`;
+    // this.getChildName("lvlplayerpos").text = `(${Math.floor(this.globalPos.x / 64)}, ${Math.floor((Utils.gameHeight - this.globalPos.y) / 64)})`;
 
     //// Controlling ////
     const groundPlatform = this.getGroundPlatform(this._gravityMultiplier > 0 ? Vector2.up() : Vector2.down());
@@ -322,12 +335,28 @@ class Player extends KinematicBody {
       this.die();
     }
 
+    //// Change Vehicle ////
+    
+    if (this._nearbyVehicle != null && actions.changeVehicle.active && !actions.changeVehicle.stale) {
+      actions.changeVehicle.stale = true;
+
+      if (this._nearbyVehicle instanceof Goal) {
+        this._inEndingAnimation = true;
+        this.getChildType(TextureRect).texture.changeState((this._textureDirection.y >= 0 ? "normal" : "inverted") + "Finish");  
+      }
+
+      this.getChildName("playerHint").text = "";
+      Utils.broadcast("changeVehicle", this._nearbyVehicle);
+
+    }
+
     //// Texture Updates ////
 
     // Horizontal
-    const horizontalMovementSign = Math.sign(this._desiredHorizontalVelocity);
-    if (this._textureDirection.y != Math.sign(this._gravityMultiplier) || (this._textureDirection.x != horizontalMovementSign && horizontalMovementSign != 0)) {
-      this._textureDirection = new Vector2(horizontalMovementSign, Math.sign(this._gravityMultiplier));
+    let currentMovementSigns = new Vector2(Math.sign(this._desiredHorizontalVelocity), Math.sign(this._gravityMultiplier));
+    if (currentMovementSigns.x == 0) currentMovementSigns.x = this._textureDirection.x;
+    if (!this._textureDirection.equals(currentMovementSigns)) {
+      this._textureDirection = currentMovementSigns;
       this.getChildType(TextureRect).texture.changeState((this._textureDirection.y >= 0 ? "normal" : "inverted") + (this._textureDirection.x >= 0 ? "Right" : "Left"));
     }
   }

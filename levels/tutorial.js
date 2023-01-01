@@ -134,7 +134,6 @@ class TutorialLevel extends Level {
 			await this.spike(Vector2.levelPositionVector2(368, Utils.levelHeight - 4), Vector2.levelVector2(1, 3), true, "spike"),
 			// Home stretch to Rocket
 			await this.platform(Vector2.levelPositionVector2(372, 2), Vector2.levelVector2(50, 3), "platform"),
-			new Hologram(Vector2.levelPositionVector2(397, 4), "Press 'E' to change vehicles!", 45, "#fff", "rocketIndicatorHologram"),
 			new Goal(Vector2.levelPositionVector2(409, 10), "goal")
 				.addChild(new AABB(Vector2.zero(), Goal.SIZE, true, "goalCollider"))
 				.addChild(new TextureRect(Vector2.zero(), Goal.SIZE, rocketTexture, "goalTexture")),
@@ -143,8 +142,11 @@ class TutorialLevel extends Level {
 				.addChild(new AABB(Vector2.zero(), Player.SIZE))
 				.addChild(new TextureRect(Vector2.zero(), Player.SIZE, playerTex, "playerTex"))
 				.addChild(new Camera(Vector2.zero(), Vector2.levelPositionVector2(422, 0), 625, 750, 0, 0, false, true, true, "playerCamera"))
-				.addChild(new Hologram(new Vector2(150, 30), "pos", 30, "#fff", "playerpos"))
-				.addChild(new Hologram(new Vector2(150, 70), "pos", 30, "#fff", "lvlplayerpos"))
+				.addChild(new Region(Vector2.levelVector2(-3, -3), Player.SIZE.addVec(Vector2.levelVector2(6, 6)), "vehicleChangeRange")
+					.addChild(new AABB(Vector2.zero(), Player.SIZE.addVec(Vector2.levelVector2(6, 6)), true, "vehicleChangeRange")))
+				.addChild(new Hologram(new Vector2(150, 79), "", 30, "#fff", "playerHint"))
+				// .addChild(new Hologram(new Vector2(150, 30), "pos", 30, "#fff", "playerpos"))
+				// .addChild(new Hologram(new Vector2(150, 70), "pos", 30, "#fff", "lvlplayerpos"))
 		];
 	}
 }

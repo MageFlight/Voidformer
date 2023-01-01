@@ -72,6 +72,9 @@ class GameObject {
     this._name = name;
   }
 
+  start() {
+  }
+
   update(dt) {
   }
 

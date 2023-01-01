@@ -92,6 +92,8 @@ class LevelView extends View {
 
     this._physics.addSprites(this._sprites);
 
+    this._sprites.forEach(sprite => sprite.start());
+
     console.log("loaded");
 
     /*
