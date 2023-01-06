@@ -236,6 +236,7 @@ class Goal extends Region {
 
       alert("You finished the tutorial!");
       alert("Nice Job!");
+      alert("If you want to play again, reload the page.");
       Utils.broadcast("togglePause");
     }
   }
@@ -267,8 +268,8 @@ class Player extends KinematicBody {
   _jumpHeight = 200;
   _maxAirJumps = 0;
   _jumpsUsed = 0;
-  _downwardMovementMultiplier = 1.185;
-  _upwardMovementMultiplier = 0.9;
+  _downwardMovementMultiplier = 1;
+  _upwardMovementMultiplier = 1;
 
   _nearbyVehicle = null;
 

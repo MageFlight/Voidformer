@@ -55,8 +55,10 @@ class Main {
 
   frame(startTime) {
     try {
+      startTime = startTime;
       this._dt = startTime - this._prevStartTime;
       this._prevStartTime = startTime;
+
       document.querySelector('title').textContent = Math.round(1000 / this._dt) + " FPS";
 
       if (this._dt > 0) {
@@ -66,6 +68,10 @@ class Main {
         }
         if (actions.stepFrame.active && !actions.stepFrame.stale) {
           this.start();
+        }
+        if (actions.toggleLog.active && !actions.toggleLog.stale) {
+          actions.toggleLog.stale = true;
+          logActive = !logActive;
         }
 
         if (this._updateView) {

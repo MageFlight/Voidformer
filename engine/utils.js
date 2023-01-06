@@ -31,13 +31,23 @@ class Utils {
   }
 
   /**
+   * Rounds a number to a specified number of decimal places.
+   * @param {Number} n The number to round
+   * @param {Number} places The number of places to round the decmal to.
+   */
+  static roundToDecimal(n, places) {
+    const zeroes = Math.pow(10, places);
+    return Math.round(n * zeroes) / zeroes;
+  }
+
+  /**
    * Moves a value 'current' towards 'target'
    * @param {Number} current The current value
    * @param {Number} target The value to move towards
    * @param {Number} maxDelta The maximum change that should be applied to the value
    * @returns A linear interpolation that moves from current to target as far as possible without the speed exceeding maxDelta, and the result value not exceeding target.
    */
-  static moveTowards = (current, target, maxDelta) => {
+  static moveTowards (current, target, maxDelta) {
     if (Math.abs(target - current) <= maxDelta) {
       return target;
     }
@@ -261,7 +271,7 @@ class Vector2 {
    * @returns The resulting vector
    */
   multiply(n) {
-    return new Vector2(this._x * n, this._y * n);
+    return new Vector2(Utils.roundToDecimal(this._x * n, 5), Utils.roundToDecimal(this._y * n, 5));
   }
 
 
@@ -320,10 +330,12 @@ class Transform {
 }
 
 let debugWindow = null;
+let logActive = false;
 
 function log(message) {
-  // return;
-  if (debugWindow == null) {
+  if (!logActive) return;
+
+  if (debugWindow == null || debugWindow.closed) {
     debugWindow = window.open("", "DEBUG", `width=500,height=500,top=${(screen.height - 500) / 2},left=${screen.width - 500}`);
   }
   const text = debugWindow.document.createElement('p');

@@ -371,7 +371,7 @@ class Renderer {
   }
 
   fillText(position, text, fontSize, color) {
-    this._viewport.font = `${Math.ceil(fontSize * Renderer._scaleFactor)}px arial`;
+    this._viewport.font = `${Math.ceil(fontSize * Renderer._scaleFactor)}px exo2  `;
     this._viewport.fillStyle = color;
     this._viewport.fillText(text, Math.floor(position.x * Renderer._scaleFactor), Math.floor(position.y * Renderer._scaleFactor));
   }

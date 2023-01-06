@@ -462,6 +462,7 @@ class KinematicBody extends RigidBody {
 
   /**
    * Moves this sprite by the movement vector and stops if it encounters a collider.
+   * @deprecated
    * @param {Vector2} movement The vector to move by.
    * @param {Number} dt Delta time
    * @returns The information about the collision, or null if there was none.
@@ -485,8 +486,11 @@ class KinematicBody extends RigidBody {
     while (!collision.normal.equals(Vector2.zero()) && slidesLeft > 0) {
       log("collision!!!!!!!!!!!!!!");
       log("collisionTime: " + collision.time);
-      this._position.x += movement.x * collision.time * dt;
-      this._position.y += movement.y * collision.time * dt;
+      log("Position: " + JSON.stringify(collision.position));
+      log("normal: " + JSON.stringify(collision.normal));
+      this.teleportGlobal(collision.position);
+      // this._position.x += Utils.roundToDecimal(movement.x * collision.time * dt, 5);
+      // this._position.y += Utils.roundToDecimal(movement.y * collision.time * dt, 5);
 
       log("beforeCollision: " + JSON.stringify(movement));
       const dotprod = (movement.x * collision.normal.y + movement.y * collision.normal.x);
@@ -494,7 +498,7 @@ class KinematicBody extends RigidBody {
       movement.y = dotprod * collision.normal.x;
       log("AfterCollision: " + JSON.stringify(movement));
       log("afterPosition: " + JSON.stringify(this._position))
-      log("AfterCollide: ", movement);
+      log("AfterCollide: " + JSON.stringify(movement));
       
       if (!collision.normal.equals(Vector2.zero())) {
         log("Add Collision")
@@ -508,10 +512,11 @@ class KinematicBody extends RigidBody {
       collision = physics.checkCollisions(this, movement, excludeList, dt);
     }
 
-    log("FinalMovement: ", movement);
+    log("FinalMovement: " + JSON.stringify(movement));
     this._position = this._position.addVec(movement.multiply(dt));
     log("Final position: " + JSON.stringify(this._position));
-    log("result: ", this._position);
+    log("result: " + JSON.stringify(this._position));
+    log("slidesLeft: " + slidesLeft)
   }
 
   isOnGround(upDirection) {

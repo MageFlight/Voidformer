@@ -147,7 +147,7 @@ class PhysicsEngine {
      * @returns The collision information
      */
     checkCollisions(sprite, velocity, spriteExcludeList, dt) {
-      const spriteGlobalPos = sprite.globalPos;
+      const spriteGlobalPos = sprite.getChildType(AABB).globalPos;
       let broadBox = new AABB(
         new Vector2(
           velocity.x > 0 ? spriteGlobalPos.x : spriteGlobalPos.x + (velocity.x * dt),
@@ -175,8 +175,53 @@ class PhysicsEngine {
         return {
           time: 1,
           normal: Vector2.zero(),
+          position: sprite.globalPos.addVec(velocity.multiply(dt)),
           collider: null
         };
+      }
+
+      // Check if any are directly overlapping with a static Seperating Axis Theorem test. (https://noonat.github.io/intersect/#aabb-vs-aabb)
+      for (let i = 0; i < possibleSprites.length; i++) {
+        const b1Collider = sprite.getChildType(AABB);
+        const b2Collider = possibleSprites[i].getChildType(AABB);
+
+        const b2Pos = b2Collider.globalPos;
+        
+        const b1HalfSize = b1Collider.size.multiply(0.5);
+        const b2HalfSize = b2Collider.size.multiply(0.5);
+        
+        const dx = (b1HalfSize.x + b2HalfSize.x) - Math.abs((b2Pos.x + b2HalfSize.x) - (spriteGlobalPos.x + b1HalfSize.x));
+        if (dx <= 0) continue;
+
+        const dy = (b1HalfSize.y + b2HalfSize.y) - Math.abs((b2Pos.y + b2HalfSize.y) - (spriteGlobalPos.y + b1HalfSize.y));
+        if (dy <= 0) continue;
+
+        log("ExtraCheck  dx: " + dx + " dy: " + dy);
+        if (dx < dy) {
+          const signX = Math.sign(dx);
+          const collision = {
+            time: 0,
+            normal: new Vector2(signX, 0),
+            position: new Vector2(spriteGlobalPos + signX, 0),
+            collider: possibleSprites[i]
+          };
+
+          sprite.onCollision(collision);
+          possibleSprites[i].onCollision(collision);
+          return collision;
+        } else {
+          const signY = Math.sign(dy);
+          const collision = {
+            time: 0,
+            normal: new Vector2(0, signY),
+            position: new Vector2(0, spriteGlobalPos - signY),
+            collider: possibleSprites[i]
+          };
+
+          sprite.onCollision(collision);
+          possibleSprites[i].onCollision(collision);
+          return collision;
+        }
       }
       
       // Get closest collision
@@ -218,6 +263,7 @@ class PhysicsEngine {
           return {
             time: 1,
             normal: Vector2.zero(),
+            position: sprite.globalPos.addVec(velocity.multiply(dt)),
             collider: null
           }; 
         }
@@ -406,26 +452,30 @@ class PhysicsEngine {
       let finalExitTime = Math.min(exitTime.x, exitTime.y);
       log("finalEntry: " + JSON.stringify(finalEntryTime));
       log("finalExit: " + JSON.stringify(finalExitTime));
+      log("vel: " + JSON.stringify(vel));
       // If no collision
       if (finalEntryTime > finalExitTime || entryTime.x > exitTime.x || entryTime.y > exitTime.y || entryTime.x < 0 && entryTime.y < 0 || entryTime.x > 1 && entryTime.y > 1) {
         return {
           time: 1,
           normal: Vector2.zero(),
+          position: b1Pos.addVec(vel.multiply(dt)),
           collider: null
         };
       } else {
         //log("finalEntryTime (after check): " + finalEntryTime);
         if (entryTime.x > entryTime.y) {
-          if (entryDist.x < 0 || (entryDist.x == 0 && vel.x > 0)) {
+          if (entryDist.x < 0 || (entryDist.x == 0 && vel.x < 0)) {
             return {
               time: finalEntryTime,
               normal: Vector2.right(),
+              position: new Vector2(b2Pos.x + b2.size.x, b1Pos.y + (vel.y * finalEntryTime)),
               collider: staticBox
             };
           } else {
             return {
               time: finalEntryTime,
               normal: Vector2.left(),
+              position: new Vector2(b2Pos.x - b1.size.x, b1Pos.y + (vel.y * finalEntryTime)),
               collider: staticBox
             };
           }
@@ -434,12 +484,14 @@ class PhysicsEngine {
             return {
               time: finalEntryTime,
               normal: Vector2.down(),
+              position: new Vector2(b1Pos.x + (vel.x * finalEntryTime), b2Pos.y + b2.size.y),
               collider: staticBox
             };
           } else {
             return {
               time: finalEntryTime,
               normal: Vector2.up(),
+              position: new Vector2(b1Pos.x + (vel.x * finalEntryTime), b2Pos.y - b1.size.y),
               collider: staticBox
             };
           }

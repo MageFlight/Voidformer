@@ -26,15 +26,23 @@ class TitleView extends View {
   _hotTex;
   _activeTex;
 
+  _backgroundTex;
+  _titleTex;
+
+  _joinPoint = Utils.gameWidth;
+
   constructor() {
     super();
   }
 
   async init() {
     log("initing");
-    this._normalTex = await ImageTexture.create("assets/gui/titleScreen/startGameBtnN.png");
-    this._hotTex = await ImageTexture.create("assets/gui/titleScreen/startGameBtnH.png");
-    this._activeTex = await ImageTexture.create("assets/gui/titleScreen/startGameBtnA.png");
+    this._normalTex = await ImageTexture.create("assets/titleScreen/startGameBtnN.svg");
+    this._hotTex = await ImageTexture.create("assets/titleScreen/startGameBtnH.svg");
+    this._activeTex = await ImageTexture.create("assets/titleScreen/startGameBtnA.svg");
+
+    this._backgroundTex = await ImageTexture.create("assets/titleScreen/titleBackground.svg");
+    this._titleTex = await ImageTexture.create("assets/titleScreen/title.svg");
   }
 
   start() {
@@ -45,9 +53,16 @@ class TitleView extends View {
 
   update(dt) {
     // Main.get().queueViewChange(1, tutorialLevel);
+    this._joinPoint -= 0.125 * dt;
+
+    if (this._joinPoint <= 0) this._joinPoint = Utils.gameWidth;
   }
 
   draw(renderer) {
+    this._backgroundTex.draw(new Vector2(this._joinPoint - this._backgroundTex.size.x, 0), renderer);
+    this._backgroundTex.draw(new Vector2(this._joinPoint, 0), renderer);
+
+    this._titleTex.draw(new Vector2(416, 64), renderer);
   }
 
   imgui(gui, renderer) {
@@ -56,7 +71,7 @@ class TitleView extends View {
 
       log("tex: ", this._activeTex);
       gui.start(renderer);
-      if (gui.button(gui.getID(), new Vector2(64, 64), new Vector2(576, 128), this._normalTex, this._hotTex, this._activeTex)) {
+      if (gui.button(gui.getID(), new Vector2(675, 608), new Vector2(576, 128), this._normalTex, this._hotTex, this._activeTex)) {
         Main.get().queueViewChange(1, new TutorialLevel());
       }
       gui.finish();
