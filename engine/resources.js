@@ -119,6 +119,8 @@ class ColorTexture extends Texture {
 
     static async create(size, color, fill=true) {
         const context = document.createElement('canvas').getContext('2d');
+        context.canvas.width = size.x;
+        context.canvas.height = size.y;
 
         if (fill) {
             context.fillStyle = color;
@@ -158,7 +160,6 @@ class TiledTexture extends Texture {
         for (let column = 0; column < (tileHor ? size.x : tileSize); column += tileSize) {
             for (let row = 0; row < (tileVer ? size.y : tileSize); row += tileSize) {
                 const img = workingTiles.shift();
-                //console.log(img.complete);
 
                 if (rotation != 0) {
                     const width = tileHor ? tileSize : size.x;
@@ -190,8 +191,6 @@ class TiledTexture extends Texture {
                 }
 
                 tileRender.setTransform(1, 0, 0, 1, 0, 0); // Identity matrix to reset
-
-                //console.log(column, row, imageSize)
 
                 if (workingTiles.length == 0) {
                     workingTiles = [...tiles];

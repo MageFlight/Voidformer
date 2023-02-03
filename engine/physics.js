@@ -37,21 +37,17 @@ class PhysicsEngine {
     _regions = [];
     _rigidBodies = []; // TODO: Moving platforms (eventually)
     _gravity = 0.0072;
-    // static _instance = null;
 
     constructor() {
     }
 
-    /*static get() {
-      if (PhysicsEngine._instance == null) {
-        PhysicsEngine._instance = new PhysicsEngine();
-      }
-
-      return PhysicsEngine._instance;
-    }*/
-
     get gravity() {
       return this._gravity;
+    }
+
+    reset() {
+      this._regions = [];
+      this._rigidBodies = [];
     }
 
     addSprites(sprites) {
@@ -88,54 +84,6 @@ class PhysicsEngine {
           if (region != sprite2) region.interactWithRegion(sprite2); // TODO: Add capability to detect region overlap
         }
       }
-
-      /*
-      // Update sprite entering and exiting
-      const allSprites = this._dynamicSprites.concat(this._staticSprites);
-      for (let i = 0; i < this._dynamicSprites.length; i++) {
-        const collider = this._dynamicSprites[i].collider;
-        const sprite = this._dynamicSprites[i];
-
-        for (let x = 0; x < allSprites.length; x++) {
-          const otherCollider = allSprites[x].collider;
-          const otherSprite = allSprites[x];
-
-          if (i != x && !collider.isInsideSprite(otherSprite) && this.staticAABB(collider, otherSprite)) {
-            collider.enterSprite(otherSprite);
-            otherCollider.enterSprite(sprite);
-          } else if (i != x && collider.isInsideSprite(otherSprite) && !this.staticAABB(collider, otherSprite)) {
-            collider.exitSprite(otherSprite);
-            otherCollider.exitSprite(sprite);
-          }
-        }
-        
-      }
-
-      this.calculateCollisions(dt);
-      
-      for (let i = 0; i < this._dynamicSprites.length; i++) {
-        const sprite = this._dynamicSprites[i];
-        sprite.physicsUpdate(dt);
-        sprite.collider.velocity.x += sprite.collider.acceleration.x * dt;
-        // Friction stuff
-        // log(sprite.collider.acceleration.x);
-        // if (sprite.groundPlatform != null) {
-        //   // TODO: Move friction to right after collision to eliminatre groundPlatform.
-        //   const frictionForce = sprite.groundPlatform.frictionCoef * (gravity * sprite.mass) * dt;
-        //   log(sprite.collider.velocity.x);
-        //   log("frictionForce: " + frictionForce);
-        //   sprite.collider.velocity.x = sprite.collider.velocity.x - (sprite.collider.velocity.x > 0 ? frictionForce : -frictionForce);
-        //   log(Math.abs(sprite.collider.velocity.x));
-        //   if (Math.abs(sprite.collider.velocity.x) <= frictionForce) {
-        //     sprite.collider.velocity.x = 0;
-        //   }
-        //   log("velocity after friction: " + sprite.collider.velocity.x);
-        // }
-        log('vel: ' + JSON.stringify((sprite.collider.velocity)));
-        console.log(dt)
-        sprite.collider.velocity.x *= Math.pow(1 / 1.012, dt);
-        sprite.collider.velocity.y += (sprite.collider.acceleration.y + (this._gravity * sprite.mass * sprite.gravityMultiplier)) * dt; // Gravity is positive because it is applying force going down.
-      }*/
     }
     
     /**
@@ -268,76 +216,6 @@ class PhysicsEngine {
           }; 
         }
       }
-
-      /*
-      log("dboxes: " + JSON.stringify(this._dynamicSprites.length));
-      this._dynamicSprites.forEach(dBox => {
-        if (dBox.collider.enabled) {
-          let possiblePlatforms = [];
-          const broadBox = new AABB(
-            {
-              x: (dBox.collider.velocity.x > 0 ? dBox.position.x : dBox.position.x + (dBox.collider.velocity.x * dt)),
-              y: (dBox.collider.velocity.y > 0 ? dBox.position.y : dBox.position.y + (dBox.collider.velocity.y * dt))
-            },{
-              width: (dBox.collider.velocity.x > 0 ? (dBox.collider.velocity.x * dt) + dBox.size.width : dBox.size.width - (dBox.collider.velocity.x * dt)),
-              height: (dBox.collider.velocity.y > 0 ? (dBox.collider.velocity.y * dt) + dBox.size.height : dBox.size.height - (dBox.collider.velocity.y * dt))
-            }
-          );
-  
-          //strokeRect(broadBox.position, broadBox.size, '#000');
-          // Get possible platforms to intersect
-          this._staticSprites.forEach(sBox => {
-            if (!sBox.collider.enabled) return;
-            if (this.staticAABB(broadBox, sBox)) {
-              possiblePlatforms.push(sBox);
-            }
-          });
-  
-          // Get closest one
-          possiblePlatforms.sort((a,b) => {
-            let distToA = PhysicsEngine.getDist(dBox, a);
-            let distToB = PhysicsEngine.getDist(dBox, b);
-            if (distToA > distToB) {
-              return 1;
-            } else if (distToA < distToB) {
-              return -1;
-            } else {
-              return 0;
-            }
-          });
-  
-          log("Possible platforms: " + JSON.stringify(possiblePlatforms));
-          let collisions = [];
-          possiblePlatforms.forEach(sBox => {
-            if (this.staticAABB(broadBox, sBox)) {
-              const collision = this.sweptAABB(dBox, sBox, dt);
-              
-              if (!(collision.normal.x == 0 && collision.normal.y == 0)) {
-                dBox.position.x += (dBox.collider.velocity.x * dt) * collision.time;
-                dBox.position.y += (dBox.collider.velocity.y * dt) * collision.time;
-                
-                const dotprod = (dBox.collider.velocity.x * collision.normal.y + dBox.collider.velocity.y * collision.normal.x);
-                dBox.collider.velocity.x = dotprod * collision.normal.y;
-                dBox.collider.velocity.y = dotprod * collision.normal.x;
-                collisions.push(collision);
-              }
-            }
-          });
-  
-          dBox.customCollisionResponse(collisions);
-        }
-  
-        if (!dBox.pinned) {
-          log("moving: " + JSON.stringify(dBox.collider.velocity));
-          dBox.position.x += dBox.collider.velocity.x * dt;
-          dBox.position.y += dBox.collider.velocity.y * dt;
-          if (dBox.position.x < 0) {
-            dBox.position.x = 0;
-            dBox.collider.velocity.x = 0;
-          }
-          dBox.syncColliderPos();
-        }
-      });*/
     }
   
     static getDist(dBox, sBox, dBoxVel) {
@@ -381,12 +259,6 @@ class PhysicsEngine {
         c1Pos.y + c1.size.y > c2Pos.y &&
         c1Pos.y < c2.globalPos.y + c2.size.y
       );
-      //   !(
-      //   c1.globalPos.x + c1.size.x < c2.globalPos.x ||
-      //   c1.globalPos.x > c2.globalPos.x + c2.size.x ||
-      //   c1.globalPos.y + c1.size.y < c2.globalPos.y ||
-      //   c1.globalPos.y > c2.globalPos.y + c2.size.y
-      // );
     }
     
     // RETURN the time and surface normal.
@@ -397,8 +269,6 @@ class PhysicsEngine {
 
       const b1Pos = b1.globalPos;
       const b2Pos = b2.globalPos;
-      //log("b1 collider: " + JSON.stringify(b1));
-      //log(JSON.stringify(b1.velocity));
       
       let entryDist = Vector2.zero();
       let exitDist = Vector2.zero();
@@ -429,7 +299,6 @@ class PhysicsEngine {
       log("exitDist: " + JSON.stringify(exitDist));
       
       // Calculate entry and exit times
-      //log("dists: " + JSON.stringify(exitDist))
       if (vel.x == 0) {
         entryTime.x = -Infinity;
         exitTime.x = Infinity;
@@ -462,7 +331,6 @@ class PhysicsEngine {
           collider: null
         };
       } else {
-        //log("finalEntryTime (after check): " + finalEntryTime);
         if (entryTime.x > entryTime.y) {
           if (entryDist.x < 0 || (entryDist.x == 0 && vel.x < 0)) {
             return {

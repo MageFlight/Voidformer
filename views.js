@@ -72,7 +72,7 @@ class TitleView extends View {
       log("tex: ", this._activeTex);
       gui.start(renderer);
       if (gui.button(gui.getID(), new Vector2(675, 608), new Vector2(576, 128), this._normalTex, this._hotTex, this._activeTex)) {
-        Main.get().queueViewChange(1, new TutorialLevel());
+        Main.get().queueViewChange(1, new LevelOne());
       }
       gui.finish();
     } catch(e) {
@@ -90,70 +90,46 @@ class LevelView extends View {
 
   _physics;
 
+  _levels = [new TutorialLevel(), new LevelOne()];
+  _currentLevel = 1;
+
   constructor() {
     super();
     this._physics = new PhysicsEngine();
     console.log("creating level");
   }
 
-  async init(lvl) {
-    if (lvl === null) throw new Error("No level data provided for Level View creation.");
-    
-    // Attach Listeners
+  async loadCurrentLevel() {
+    const lvl = this._levels[this._currentLevel];
 
+    // Attach Listeners
     Utils.listen("changeCamera", newCamera => this._activeCamera = newCamera);
-    
+
+    this._physics.reset();
     this._sprites = (await lvl.root()).flat();
 
     this._physics.addSprites(this._sprites);
 
     this._sprites.forEach(sprite => sprite.start());
-
-    console.log("loaded");
-
-    /*
-    if (lvl === null) throw new Error("No level data provided for Level View creation.");
-
-    console.log("loading level")
-    const texDat = lvl.textures;
-
-    this._background = await parseTex(texDat.background[lvl.background], {width: Utils.gameWidth, height: Utils.gameHeight});
-    this._maxScroll = lvl.maxScroll * this._levelScale - Utils.gameWidth;
-
-    // Load Sprites
-    for (let i = 0; i < lvl.sprites.length; i++) {
-      const rawSprite = lvl.sprites[i];
-      let sprite = await rawSprite.type.loadFromRaw(rawSprite.data, this._levelScale, texDat);
-      this._sprites.push(sprite);
-      if (sprite instanceof StaticBox || sprite instanceof DynamicBox) {
-        this._physics.addSprite(sprite);
-      }
-    }
-
-    console.log("loaded");
-    console.log(this._sprites);*/
-
+    log("loaded");
   }
 
-  loadSprite(sprite) {
-    /*
-    log("HI")
-    log(data);
-    const spr = await data.type.loadFromRaw(data.data, this._levelScale);
-    if (spr instanceof Region) {
-      this._physics.addSprite(spr);
-    }
+  async init() {
+    Utils.listen("removeSprite", spr => {
+      this._physics.removeSprite(spr);
+      this._sprites.splice(this._sprites.indexOf(spr), 1);
+    });
 
-    if (data.children) {
-      log("children: ", data.children);
-      for (let i = 0; i < data.children.length; i++) {
-        log("loading child")
-        const child = await this.loadSprite(data.children[i]);
-        spr.addChild(child);
+    Utils.listen("nextLevel", () => {
+      this._currentLevel++;
+      if (this._currentLevel == this._levels.length) {
+        alert("You finished the game! Reload the page to play again.");
+        Utils.broadcast("togglePause");
       }
-      log("finished children")
-    }
-    return spr;*/
+      this.loadCurrentLevel();
+    });
+
+    this.loadCurrentLevel();
   }
 
   update(dt) {
@@ -164,19 +140,6 @@ class LevelView extends View {
     }
 
     this._physics.interactRegions();
-
-    // Update scroll position
-    /*const rightBound = 750;
-    const leftBound = 625;
-    const playerScreenX = this.getSprite(Player).position.x - this._scrollPos;
-    if (playerScreenX > rightBound) {
-      this._scrollPos += playerScreenX - rightBound;
-    } else if (playerScreenX < leftBound) {
-      this._scrollPos = this._scrollPos + playerScreenX - leftBound;
-    }
-    log("maxScroll: " + this._maxScroll)
-    log("currentScroll: " + this._scrollPos)
-    this._scrollPos = Math.min(Math.max(this._scrollPos, this._minScroll), this._maxScroll);*/
   }
 
   draw(renderer) {

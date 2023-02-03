@@ -1,63 +1,5 @@
 // "Cutting Grass is my passion" - Link 2022
 
-// const gameWidth = 1920;
-// const gameHeight = 1088;
-
-// setCanvasSize();
-
-// let prevBeginTime = Date.now();
-
-// let debugWindow = window.open("", "DEUBUG", `width=500,height=500,top=${(screen.height - 500) / 2},left=${screen.width - 500}`);
-// debugWindow.document.write('<title>DEBUG</title><body><p id="log" style="white-space: pre-wrap;"></p></body>');
-// debugWindow.blur();
-// window.focus();
-// let debugLines = [];
-// //console.log = message => alert(message);
-// //console.error = message => alert('Error: ' + message);
-// function log(message) {
-//   console.log(message);
-//   //return;
-//   if (logging) {
-//     if (!debugWindow.closed) {
-//       /*debugLines.push(message);
-//       if (debugLines.length > 10) debugLines.shift(); // If more than 200 lines, remove the first one.
-//       debugWindow.document.querySelector('#log').textContent = debugLines.join("\n");*/
-//       const messageElement = debugWindow.document.createElement('p');
-//       messageElement.textContent = message;
-//       debugWindow.document.querySelector('body').appendChild(messageElement);
-//       debugWindow.scrollTo(0, debugWindow.document.body.scrollHeight);
-//       let debugLines = debugWindow.document.querySelector('body').children;
-//       if (debugLines.length > 40) {
-//         debugLines[0].remove();
-//       }
-//     } else {
-//       alert(message);
-//     }
-//   }
-// }
-
-// class Scene {
-//   _name = "";
-//   _loader;
-
-//   constructor(name, loader) {
-//     this._name = name;
-//     this._loader = loader;
-//   }
-
-//   async load(...data) {
-//     return this._loader.call(this, ...data);
-//   }
-
-//   get name() {
-//     return this._name;
-//   }
-
-//   get loader() {
-//     return this._loader;
-//   }
-// }
-
 class GameObject {
   static genID = 0;
 
@@ -222,25 +164,8 @@ class Sprite extends GameObject {
     this._position = this._position.addVec(position.subtract(this.globalPos));
   }
 
-  /**
-   * Updates this sprite's global position based on its parent's position
-   * @param {Vector2} parentPos The position to update relative to
-   */
-  /*
-  updateGlobalPos(parentPos) {
-    this._globalPos = this._position.addVec(parentPos);
-
-    for (let i = 0; i < this._children.length; i++) {
-      this._children[i].updateGlobalPos(this._position);
-    }
-  }*/
-
   get globalPos() {
     if (this._parent && this._parent instanceof Sprite) {
-      // log("Parent: " + this._parent);
-      // log("pos: " + JSON.stringify(this._position));
-      // log("parent: " + JSON.stringify(this._parent.globalPos))
-      // log("parentPlus: " + JSON.stringify(this._position.addVec(this._parent.globalPos)))
       return this._position.addVec(this._parent.globalPos);
     }
     return this._position.clone();
@@ -329,11 +254,12 @@ class Camera extends Sprite {
     if (this._parent == null) {
       parentScreenPosition == Vector2.zero();
     } else {
-      parentScreenPosition = this._parent.globalPos.subtract(this._scrollPos);
+      parentScreenPosition = new Vector2(this._parent.globalPos.x - this._scrollPos.x, this._parent.globalPos.y - this._scrollPos.y);
     }
     log(JSON.stringify(parentScreenPosition));
     log("scrollPos: " + JSON.stringify(this._scrollPos));
     log("scrollMax: " + JSON.stringify(this._scrollMax));
+    log("scrollMin: " + JSON.stringify(this._scrollMin));
 
     // x-axis
     if (!this._horizontalLock) {
@@ -343,9 +269,14 @@ class Camera extends Sprite {
     }
     // y-axis
     if (!this._verticalLock) {
+      log("screenPos: " + parentScreenPosition.y);
+      log("upOffset: " + (parentScreenPosition.y - this._upBound));
+      log("downOffset: " + (parentScreenPosition.y - this._downBound));
       if (parentScreenPosition.y < this._upBound) this._scrollPos.y += parentScreenPosition.y - this._upBound;
       if (parentScreenPosition.y > this._downBound) this._scrollPos.y += parentScreenPosition.y - this._downBound;
-      this._scrollPos.y = Math.min(Math.max(this._scrollPos.y, this._scrollMin.y - Utils.gameHeight), this._scrollMax.y)
+      log("beforeClamp: " + this._scrollPos.y);
+      this._scrollPos.y = Math.min(Math.max(this._scrollPos.y, this._scrollMin.y), this._scrollMax.y)
+      log("afterClamp: " + this._scrollPos.y);
     }
   
     return this._scrollPos;
@@ -401,7 +332,6 @@ class Region extends CollisionObject {
   }
 
   interactWithRegion(region) {
-    // log("checking region: " + region.uid);
     const intersecting = this.intersecting(region);
     const containsRegion = this._regionsInside.indexOf(region) > -1;
 
@@ -489,8 +419,6 @@ class KinematicBody extends RigidBody {
       log("Position: " + JSON.stringify(collision.position));
       log("normal: " + JSON.stringify(collision.normal));
       this.teleportGlobal(collision.position);
-      // this._position.x += Utils.roundToDecimal(movement.x * collision.time * dt, 5);
-      // this._position.y += Utils.roundToDecimal(movement.y * collision.time * dt, 5);
 
       log("beforeCollision: " + JSON.stringify(movement));
       const dotprod = (movement.x * collision.normal.y + movement.y * collision.normal.x);
@@ -536,298 +464,6 @@ class KinematicBody extends RigidBody {
     return null;
   }
 }
-
-/*
-class StaticBox extends Sprite {
-  _collider;
-
-  constructor(position = {x: 0, y: 0}, size = {x: 64, y: 64}, collider, frictionCoef = 0.9) {
-    super(position, size);
-    this._collider = collider;
-    this._collider.position = {
-      x: this.position.x + this._collider.offset.x,
-      y: this.position.y + this._collider.offset.y
-    };
-    this.frictionCoef = frictionCoef;
-    log("friction " + this.frictionCoef);
-  }
-
-  get collider() {
-    return this._collider;
-  }
-  
-  syncColliderPos() {
-    this._collider.position = {
-      x: this.position.x + this._collider.offset.x,
-      y: this.position.y + this._collider.offset.y
-    };
-  }
-}
-
-  
-class DynamicBox extends Sprite {
-  static genID = Utils.counter();
-
-  _collider;
-
-  constructor(position = {x: 0, y: 0}, size = {x: 10, y: 10}, collider, mass=10) {
-    super(position, size);
-    this._collider = collider;
-    this._collider.position = {
-      x: this.position.x + this._collider.offset.x,
-      y: this.position.y + this._collider.offset.y
-    };
-    this.gravityMultiplier = 1;
-    this.mass = mass;
-    this.groundPlatform = null;
-  }
-
-  get collider() {
-    return this._collider;
-  }
-
-  customCollisionResponse(collision) {}
-  
-  syncColliderPos() {
-    this._collider.position = {
-      x: this.position.x + this._collider.offset.x,
-      y: this.position.y + this._collider.offset.y
-    };
-  }
-  
-  physicsUpdate() {
-  }
-}*/
-/*
-class Level {
-  _gui;
-
-  constructor(initData) {
-    this.data = initData;
-    
-    this.staticSprites = [];
-    this.dynamicSprites = [];
-    this.backgroundColor = '#ffffff';
-    this.physicsEngine = new PhysicsEngine();
-    this.scrollPos = 0;
-    this.maxScroll = 0;
-    this.background = null;
-    this._gui = new Imgui();
-    this._pauseBtn;
-  }
-  
-  async load() {
-    const lvlScale = 64;
-    if (this.data === null) { return; }
-
-    this.staticSprites = [];
-    this.dynamicSprites = [];
-
-    this._pauseBtn = await parseTex(1, 1, {
-      type: "multiStateTex",
-      states: {
-        pause: {
-          type: "multiStateTex",
-          states: {
-            normal: {
-              type: "staticTex",
-              src: "assets/gui/pauseNormal.svg"
-            },
-            hot: {
-              type: "staticTex",
-              src: "assets/gui/pauseHot.svg"
-            },
-            active: {
-              type: "staticTex",
-              src: "assets/gui/pauseActive.svg"
-            }
-          }
-        },
-        start: {
-          type: "multiStateTex",
-          states: {
-            normal: {
-              type: "staticTex",
-              src: "assets/gui/startNormal.svg"
-            },
-            hot: {
-              type: "staticTex",
-              src: "assets/gui/startHot.svg"
-            },
-            active: {
-              type: "staticTex",
-              src: "assets/gui/startActive.svg"
-            }
-          }
-        }
-      }
-    }, lvlScale);
-
-    // Load Background
-    this.background = await parseTex(gameHeight / lvlScale, gameWidth / lvlScale, this.data.textures.background[this.data.background], lvlScale);
-
-    // Load maxScroll
-    this.maxScroll = (this.data.maxScroll * lvlScale) - gameWidth;
-
-    // Load Platfofrms
-    for (let i = 0; i < this.data.platforms.length; i++) {
-      const rawPlatform = this.data.platforms[i];
-      const position = {
-        x: rawPlatform.x * lvlScale,
-        y: gameHeight - rawPlatform.y * lvlScale
-      }
-      const size = {
-        width: rawPlatform.width * lvlScale,
-        height: rawPlatform.height * lvlScale
-      }
-      const tex = await parseTex(rawPlatform.width, rawPlatform.height, this.data.textures.platform[rawPlatform.texture], lvlScale);
-
-      const initPlatform = new Platform(position, size, tex, rawPlatform.color);
-
-      this.staticSprites.push(initPlatform);
-      this.physicsEngine.addStaticSprite(initPlatform);
-    }
-
-    // Load Spikes
-    for (let i = 0; i < this.data.spikes.length; i++) {
-      const rawSpike = this.data.spikes[i];
-      const initSpike = new Spike({
-        x: rawSpike.x * lvlScale,
-        y: gameHeight - rawSpike.y * lvlScale
-      }, {
-        width: rawSpike.width * lvlScale,
-        height: rawSpike.height * lvlScale
-      },
-      await parseTex(rawSpike.width, rawSpike.height, this.data.textures.spike[rawSpike.texture], lvlScale));
-
-      this.staticSprites.push(initSpike);
-      this.physicsEngine.addStaticSprite(initSpike);
-    }
-
-    // Load Holograms
-    for (let i = 0; i < this.data.holograms.length; i++) {
-      const rawHolo = this.data.holograms[i];
-      const initHolo = new Hologram({x: rawHolo.x * lvlScale, y: gameHeight - rawHolo.y * lvlScale}, rawHolo.text, rawHolo.fontSize);
-
-      this.staticSprites.push(initHolo);
-    }
-
-    // Load Checkpoints
-    for (let i = 0; i < this.data.checkpoints.length; i++) {
-      const rawCheck = this.data.checkpoints[i];
-      const initCheck = new Checkpoint({
-        x: rawCheck.x * lvlScale,
-        y: gameHeight - (rawCheck.y * lvlScale)
-      },
-      await parseTex(Checkpoint.SIZE.width / lvlScale, Checkpoint.SIZE.height / lvlScale, this.data.textures.checkpoint[rawCheck.texture], lvlScale));
-
-      this.staticSprites.push(initCheck);
-    }
-
-    // Load Goal
-    // TODO: Make size determined in lvl
-    const goal = new Goal(
-      {
-        x: this.data.goal.x * lvlScale,
-        y: gameHeight - (this.data.goal.y * lvlScale)
-      },
-      await parseTex(Goal.SIZE.width / lvlScale, Goal.SIZE.height / lvlScale, this.data.textures.goal[this.data.goal.texture], lvlScale)
-    );
-
-    this.dynamicSprites.push(goal);
-    this.physicsEngine.addDynamicSprite(goal);
-
-    // Load Player
-    const player = new Player(
-      {x: this.data.spawn.x * lvlScale, y: gameHeight - (this.data.spawn.y * lvlScale)},
-      await parseTex(Player.SIZE.width / lvlScale, Player.SIZE.height / lvlScale, this.data.textures.player.normal, lvlScale)
-    );
-
-    this.dynamicSprites.push(player);
-    this.physicsEngine.addDynamicSprite(player);
-  }
-  
-  update() {
-    for (let i = 0; i < this.staticSprites.length; i++) {
-      this.staticSprites[i].update();
-    }
-
-    for (let i = 0; i < this.dynamicSprites.length; i++) {
-      this.dynamicSprites[i].update();
-      this.dynamicSprites[i].physicsUpdate();
-    }
-    
-    this.physicsEngine.updateSprites();
-
-    // Update scroll position
-    const rightBound = 750;
-    const leftBound = 625;
-    const playerScreenX = this.getSprites(Player)[0].position.x - this.scrollPos;
-    if (playerScreenX > rightBound) {
-      this.scrollPos += playerScreenX - rightBound;
-    } else if (playerScreenX < leftBound) {
-      this.scrollPos = this.scrollPos + playerScreenX - leftBound;
-    }
-    this.scrollPos = Math.min(Math.max(this.scrollPos, 0), this.maxScroll);
-  }
-  
-  draw() {
-    log("scroll: " + this.scrollPos);
-    viewport.translate(-this.scrollPos * (canvas.clientWidth / gameWidth) - viewport.getTransform().e,0);
-    this.background.draw({x: this.scrollPos, y: 0}, {width: gameWidth + 1, height: gameHeight});
-
-    //log("drawing: " + JSON.stringify(this.staticSprites));
-    for (let i = 0; i < this.staticSprites.length; i++) {
-      if (this.staticSprites[i].showing) this.staticSprites[i].draw();
-    }
-    
-    for (let i = 0; i < this.dynamicSprites.length; i++) {
-      if (this.dynamicSprites[i].showing) this.dynamicSprites[i].draw();
-    }
-
-    this._gui.start();
-
-    if (this._gui.button(this._gui.getID(), {x: 25, y: 25}, {width: 64, height: 64}, this._pauseBtn[running ? 'pause' : 'start'])) {
-      running = !running;
-    }
-
-    this._gui.finish();
-  }
-  
-  changeData(newData) {
-    this.data = newData;
-    this.load();
-  }
-
-  win() {
-    const player = this.getSprites(Player)[0];
-    player.showing = false;
-    player.pinned = true;
-    this.getSprites(Goal)[0].startTakeoff();
-  }
-
-  getSprites(type) {
-    let sprites = [];
-    for (let i = 0; i < this.staticSprites.length; i++) {
-      if (this.staticSprites[i] instanceof type) {
-        sprites.push(this.staticSprites[i]);
-      }
-    }
-
-    for (let i = 0; i < this.dynamicSprites.length; i++) {
-      if (this.dynamicSprites[i] instanceof type) {
-        sprites.push(this.dynamicSprites[i]);
-      }
-    }
-
-    if (sprites.length === 0) {
-      log("couldn't find sprite of type " + type);
-      return null;
-    } else {
-      return sprites;
-    }
-  }
-}*/
 
 addEventListener('keydown', ({code}) => {
   // Loop through all the actions and activate it if the corrosponding key is pressed.

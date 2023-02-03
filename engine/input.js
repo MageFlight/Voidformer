@@ -13,16 +13,13 @@ class MouseHandeler {
 
     addEventListener("mousedown", event => {
       this._buttonStates[event.button] = true;
-      // log(JSON.stringify(this._buttonStates));
     });
     addEventListener("mouseup", event => {
       this._buttonStatesQueue[event.button] = false;
-      // log(JSON.stringify(this._buttonStatesQueue));
     });
   }
 
   update() {
-    //console.log(JSON.stringify(this._buttonStates) + " " + JSON.stringify(this._buttonStatesQueue));
     for (let i = 0; i < this._buttonStates.length; i++) {
       this._buttonStates[i] = this._buttonStates[i] && this._buttonStatesQueue[i];
     }

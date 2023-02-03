@@ -172,5 +172,4 @@ function start() {
   }
 }
 
-//log(document.querySelector("body"));
 document.querySelector("body").onload = start;

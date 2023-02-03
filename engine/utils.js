@@ -128,8 +128,8 @@ class Utils {
       let j = Math.floor(randGen.next().value * i);
       
       // Same thing as this:
-      let t = arr[i]; arr[i] = arr[j]; arr[j] = t
-      // [arr[i], arr[j]] = [arr[j], arr[i]];
+      // let t = arr[i]; arr[i] = arr[j]; arr[j] = t
+      [arr[i], arr[j]] = [arr[j], arr[i]];
     }
   }
 
@@ -170,15 +170,6 @@ class Vector2 {
   static levelVector2(x, y) {
     return new Vector2(x * Utils.levelScale, y * Utils.levelScale);
   }
-
-  // /**
-  //  * Creates a new Vector2 with both components equal to n
-  //  * @param {Number} n The initial component values of the vector
-  //  */
-  // constructor(n) {
-  //   this._x = n;
-  //   this._y = n;
-  // }
 
   /**
    * Returns a zero vector: a vector with all components set to 0
