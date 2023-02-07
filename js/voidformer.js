@@ -90,22 +90,42 @@ class Spike extends Region {
 }
 
 class Battery extends Region {
+  _collectedState = 0; // 0 is Uncollected, 1 is collected, no checkpoint lock, 2 is collected and locked
+ 
   constructor(position, size, name) {
     super(position, size, name);
   }
 
+  collect() {
+    this._collectedState = 1;
+    this.getChildType(AABB).enabled = false;
+    this._visible = false;
+  }
+
+  reset() {
+    if (this._collectedState == 2) {
+      log("Reset failed due to lock");
+      return;
+    }
+    log("Resetting battery");
+
+    this._collectedState = 0;
+    this.getChildType(AABB).enabled = true;
+    this._visible = true;
+  }
+
   start() {
-    Utils.listen("playerDie", () => {
-      this.getChildType(AABB).enabled = true;
-      this._visible = true;
-    });
+    console.log("Starting battery", this);
+    Utils.listen("playerDie", () => this.reset());
+    Utils.listen("playerCheckpoint", () => {
+      this._collectedState = Math.min(this._collectedState * 2, 2);
+      log("Attempted lock, state " + this._collectedState);
+    }); // Lock if collected
   }
 
   onRegionEnter(region) {
-    if (region instanceof Player && !this._collected) {
-      Utils.broadcast("batteryGet");
-      this.getChildType(AABB).enabled = false;
-      this._visible = false;
+    if (region instanceof Player && this._collectedState == 0) {
+      this.collect();
     }
   }
 }
@@ -153,12 +173,14 @@ class Checkpoint extends Region {
   }
 
   onRegionEnter(region) {
+    if (this._active) return;
+
     log("Region Entered.");
     if (region instanceof Player) {
       this._active = true;
       log("Texture: " + this.getChildType(TextureRect).texture.changeState);
       this.getChildType(TextureRect).texture.changeState(this._active ? "active" : "inactive");
-      Utils.broadcast("playerCheckpoint", this)
+      Utils.broadcast("nextCheckpoint", this)
     }
   }
 
@@ -230,209 +252,129 @@ class Goal extends Region {
   }
 }
 
-class Player extends KinematicBody {
-  static SIZE = new Vector2(128, 128);
-  _spawn = Vector2.zero();
+class MovementParameters {
+  maxSpeed;
+
+  maxAcceleration;
+  maxAirAcceleration;
+  deccelerationRate;
+  airDeccelerationRate;
+  airFriction;
+  turnRate;
+
+  jumpHeight;
+  maxAirJumps;
+
+  upwardGravity;
+  downwardGravity;
+
+  /**
+   * The base set of movement contstraints for a movement controller.
+   * @param {Number} maxSpeed The maximum speed of the object
+   * @param {Number} maxAcceleration The maximum rate at which the object will speed up while grounded
+   * @param {Number} maxAirAcceleration The maximum rate at which the object will speed up while airborne
+   * @param {Number} deccelerationRate The maximum rate at which the object will slow down while grounded
+   * @param {Number} airDeccelerationRate The maximum rate at which the object will slow down while airborne
+   * @param {Number} airFriction The friction of the air: While airborne, the acceleration is divided by this value 
+   * @param {Number} turnRate Multiplies the acceleration by this value when the targeted horizontal velocity is not the same sign as the actual velocity.
+   * @param {Number} jumpHeight The height of the object's jump
+   * @param {Number} maxAirJumps The maximum amount of jumps in the air
+   * @param {Number} upwardGravity The multiplier on gravity on the object when its velocity is upwards.
+   * @param {Number} downwardGravity The multiplier on gravity on the object when its velocity is 0 or downwards.
+   */
+  constructor(
+    maxSpeed,
+    maxAcceleration,
+    maxAirAcceleration,
+    deccelerationRate,
+    airDeccelerationRate,
+    airFriction,
+    turnRate,
+    jumpHeight,
+    maxAirJumps,
+    upwardGravity,
+    downwardGravity
+  ) {
+    this.maxSpeed = maxSpeed;
+    
+    this.maxAcceleration = maxAcceleration;
+    this.maxAirAcceleration = maxAirAcceleration;
+    this.deccelerationRate = deccelerationRate;
+    this.airDeccelerationRate = airDeccelerationRate;
+    this.airFriction = airFriction;
+    this.turnRate = turnRate;
+
+    this.jumpHeight = jumpHeight;
+    this.maxAirJumps = maxAirJumps;
+    
+    this.upwardGravity = upwardGravity;
+    this.downwardGravity = downwardGravity;
+  }
+}
+
+class MovementController {
+  _movementParameters;
 
   _velocity = Vector2.zero();
-  _desiredHorizontalVelocity = 0;
-
-  _textureDirection = Vector2.one();
-
-  _normalMovementParameters = {
-    maxSpeed: 1.6,
-    maxAcceleration: 0.009,
-    maxAirAcceleration: 0.003,
-    deccelerationRate: 0.007,
-    airDeccelerationRate: 0.001,
-    airFriction: 0.9,
-    turnRate: 1.6,
-
-    jumpHeight: 200,
-    maxAirJumps: 0,
-    jumpsUsed: 0,
-    upwardMovementMultiplier: .8,
-    downwardMovementMultiplier: 1.2,
-  };
-
-  _overdriveMovementParameters = {
-    maxSpeed: 2,
-    maxAcceleration: 0.006,
-    maxAirAcceleration: 0.006,
-    deccelerationRate: 0.006,
-    airDeccelerationRate: 0.001,
-    airFriction: 0.9,
-    turnRate: 1.6,
-
-    jumpHeight: 400,
-    maxAirJumps: 0,
-    jumpsUsed: 0,
-    upwardMovementMultiplier: 0.9,
-    downwardMovementMultiplier: 1.2
-  };
-
-  _activeMovementParameters = {
-    maxSpeed: 1.6,
-    maxAcceleration: 0.009,
-    maxAirAcceleration: 0.003,
-    deccelerationRate: 0.009,
-    airDeccelerationRate: 0.001,
-    airFriction: 0.9,
-    turnRate: 1.7,
-
-    jumpHeight: 200,
-    maxAirJumps: 0,
-    upwardMovementMultiplier: .9,
-    downwardMovementMultiplier: 1.2,
-  };
-
-  _queueMovementParameters = null;
+  _gravityMultiplier = 1;
 
   _jumpsUsed = 0;
-  
-  _nearbyVehicle = null;
 
-  _gravityMultiplier = 1;
-  _haveReserveFlip = true;
-  _gravityKillZone = 0;
-  _gravityKillZoneActive = false;
-
-  _currentCheckpoint = null;
-
-  _activeVehicle = true;
-
-  _chargeLevel = 0;
-
-  _overdriven = false;
-
-  constructor(position, name) {
-    super(position, Player.SIZE, name);
-
-    log("PlayerSpawn: " + JSON.stringify(position));
-    this._spawn = position.clone();
+  /**
+   * A movement controller computes what an object's velocity should be based on the player input and the movement parameters.
+   * @param {MovementParameters} movementParameters The initial movement parameters that constrain the object's movement
+   */
+  constructor(movementParameters) {
+    this._movementParameters = movementParameters;
   }
 
-  start() {
-    Utils.listen("playerCheckpoint", checkpoint => {
-      this._spawn = checkpoint.position.clone();
-      this._currentCheckpoint = checkpoint;
-    });
-
-    Utils.listen("playerDie", () => {
-      this.die();
-    });
-
-    Utils.listen("changeVehicle", vehicle => {
-      if (vehicle != this) {
-        this._activeVehicle = false;
-        this.getChildType(TextureRect).texture.changeState((this._textureDirection.y >= 0 ? "normal" : "inverted") + "Empty");
-      }
-    });
-
-    Utils.listen("batteryGet", () => {
-      this._chargeLevel = Math.min(this._chargeLevel + 20, 100);
-    });
-  }
-  
-  update() {
-    this._chargeLevel = 100;
-    console.log("regions inside ", this._regionsInside)
-    this.getChildName("playerpos").text = `(${Math.floor(this.globalPos.x / 64)}, ${Math.floor(this.globalPos.y / 64)})`;
-    this.getChildName("lvlplayerpos").text = `(${Math.floor(this.globalPos.x / 64)}, ${Math.floor((Utils.gameHeight - this.globalPos.y) / 64)})`;
-
-    //// Controlling ////
-    const groundPlatform = this.getGroundPlatform(this._gravityMultiplier > 0 ? Vector2.up() : Vector2.down());
-    const onGround = groundPlatform != null;
-
-    // Movement Parameters
-    if (onGround && this._queueMovementParameters != null) {
-      this._activeMovementParameters = this._queueMovementParameters;
-      this._queueMovementParameters = null;
-    }
-
-    // Horizontal
-    this._desiredHorizontalVelocity =
-      (actions.left.active != actions.right.active) * (actions.left.active * -1 + actions.right.active) * // If both left or right are active, then 0. If left is active, then 1. If right is active, then -1.
-      this._activeMovementParameters.maxSpeed *
-      this._activeVehicle // Only move if this is the active vehicle.
-    
-    if ((actions.stepFrame.active && !actions.stepFrame.active)) {
-      Utils.broadcast("toggleFrame");
-    }
-
-    // Gravity Flip
-    if ((actions.gravFlip.active && !actions.gravFlip.stale) && (onGround || this._haveReserveFlip) && this._activeVehicle) {
-      actions.gravFlip.stale = true;
-      this._gravityMultiplier *= -1;
-      this._haveReserveFlip = onGround;
-      this._gravityKillZone = (this._gravityMultiplier > 0) * Utils.gameHeight + this.getChildType(Camera).calculateScroll().y;
-      log("killZone: " + this._gravityKillZone);
-      this._gravityKillZoneActive = true;
-    }
-
-    //// Overdrive ////
-
-    // Activation
-    if (actions.overdrive.active && !actions.overdrive.stale/* && this._chargeLevel == 0*/) {
-      this._overdriven = true;
-      Utils.timer(() => {
-        this._overdriven = 0;
-        this._activeMovementParameters = this._normalMovementParameters;
-      }, 5000, false);
-      this._chargeLevel = 0;
-      this._activeMovementParameters = this._overdriveMovementParameters;
-    }
-    
-    //// Death Conditions ////
-
-    // Void
-    log(this._position.y + this._size.y);
-    if (this._position.y > Utils.gameHeight || this._position.y + this._size.y < -Utils.gameHeight /*|| (this._gravityKillZoneActive && ((this._gravityMultiplier > 0 && this._position.y > this._gravityKillZone) || (this._gravityMultiplier < 0 && this._position.y + this._size.y < this._gravityKillZone)))*/) {
-      Utils.broadcast("playerDie");
-    }
-
-    //// Texture Updates ////
-
-    // Horizontal
-    let currentMovementSigns = new Vector2(Math.sign(this._desiredHorizontalVelocity), Math.sign(this._gravityMultiplier));
-    if (currentMovementSigns.x == 0) currentMovementSigns.x = this._textureDirection.x;
-    if (!this._textureDirection.equals(currentMovementSigns) && this._activeVehicle) {
-      this._textureDirection = currentMovementSigns;
-      this.getChildType(TextureRect).texture.changeState((this._textureDirection.y >= 0 ? "normal" : "inverted") + (this._textureDirection.x >= 0 ? "Right" : "Left"));
-    }
+  get movementParameters() {
+    return this._movementParameters;
   }
 
-  physicsUpdate(physics, dt) {
-    const groundPlatform = this.getGroundPlatform(this._gravityMultiplier > 0 ? Vector2.up() : Vector2.down())
+  set movementParameters(newParameters) {
+    this._movementParameters = newParameters;
+  }
+
+  /**
+   * Calculates the new velocity for the object, using the constraints and current velocity.
+   * @param {Number} desiredHorizontalDirection The direction to accelerate towards. -1 is left, 1 is right, and 0 is stop
+   * @param {boolean} jumpDesired Determines whether a jump should be attempted.
+   * @param {RigidBody} groundPlatform The RigidBody that the object is standing on. If airborne, this is null.
+   * @param {Number} downDirection The direction of the ground. -1 is up relative to the screen, and 1 is down relative to the screen
+   * @param {Number} dt The elapsed time since the start of the previous frame
+   * @param {PhysicsEngine} physics The physics engine used in physics calculations
+   * @returns The desired velocity after taking into account the current velocity and constraits.
+   */
+  computeVelocity(desiredHorizontalDirection, jumpDesired, groundPlatform, downDirection, physics, dt) {
     const onGround = groundPlatform != null;
 
     // Horizontal Movement
     let acceleration = 0;
-    if (this._desiredHorizontalVelocity == 0) { // Deceleration
-      acceleration = this._activeMovementParameters.deccelerationRate * onGround + this._activeMovementParameters.airDeccelerationRate * !onGround;
+    if (desiredHorizontalDirection == 0) { // Deceleration
+      acceleration = this._movementParameters.deccelerationRate * onGround + this._movementParameters.airDeccelerationRate * !onGround;
     } else {
-      acceleration = this._activeMovementParameters.maxAcceleration * onGround + this._activeMovementParameters.maxAirAcceleration * !onGround;
+      acceleration = this._movementParameters.maxAcceleration * onGround + this._movementParameters.maxAirAcceleration * !onGround;
 
-      if (Math.sign(this._desiredHorizontalVelocity) != Math.sign(this._velocity.x)) { // Turning
-        acceleration *= this._activeMovementParameters.turnRate;
+      if (desiredHorizontalDirection != Math.sign(this._velocity.x)) { // Turning
+        acceleration *= this._movementParameters.turnRate;
       }
     }
-    
-    log("accel before friction: " + acceleration)
-    acceleration /= onGround ? groundPlatform.friction : this._activeMovementParameters.airFriction;
-    this._velocity.x = Utils.moveTowards(this._velocity.x, this._desiredHorizontalVelocity, acceleration * dt);
 
+    log("accel before friction: " + acceleration);
+    acceleration /= onGround ? groundPlatform.friction : this._movementParameters.airFriction;
+    log("acceleration after friction: " + acceleration);
+    this._velocity.x = Utils.moveTowards(this._velocity.x, desiredHorizontalDirection * this._movementParameters.maxSpeed, acceleration * dt);
+    log("final x velocity: " + this._velocity.x);
 
     //// Vertical Movement ////
-    const downDirection = Math.sign(this._gravityMultiplier); // If 1, normal. If -1, gravity is inverted
-
     // Jumping
     this._jumpsUsed *= !onGround; // Reset jumps used if on ground
 
-    if ((onGround || this._jumpsUsed < this._activeMovementParameters.maxAirJumps) && actions.jump.active && this._activeVehicle) {
+    if ((onGround || this._jumpsUsed < this._movementParameters.maxAirJumps) && jumpDesired) {
       this._jumpsUsed += 1 * !onGround;
 
-      let jumpSpeed = -Math.sqrt(-4 * this._activeMovementParameters.jumpHeight * -(physics.gravity * this._activeMovementParameters.upwardMovementMultiplier)) * downDirection; // Gravity is inverted because y-axis is inverted (relative to math direction) in Andromeda Game Engine.
+      let jumpSpeed = -Math.sqrt(-4 * this._movementParameters.jumpHeight * -(physics.gravity * this._movementParameters.upwardGravity)) * downDirection; // Gravity is inverted because y-axis is inverted (relative to math direction) in Andromeda Game Engine.
       log("jumpSpeed: " + jumpSpeed)
 
       // Making jump height constant in air jump environments
@@ -452,9 +394,9 @@ class Player extends KinematicBody {
     // Special Gravity
 
     if (this._velocity.y * downDirection < 0) {
-      this._gravityMultiplier = this._activeMovementParameters.upwardMovementMultiplier * downDirection;
+      this._gravityMultiplier = this._movementParameters.upwardGravity * downDirection;
     } else if (this._velocity.y * downDirection > 0) {
-      this._gravityMultiplier = this._activeMovementParameters.downwardMovementMultiplier * downDirection;
+      this._gravityMultiplier = this._movementParameters.downwardGravity * downDirection;
     } else {
       this._gravityMultiplier = downDirection;
     }
@@ -463,22 +405,150 @@ class Player extends KinematicBody {
     // Apply Gravity
     this._velocity.y += physics.gravity * this._gravityMultiplier * dt;
 
-    this.moveAndSlide(this._velocity, physics, dt);
+    return this._velocity;
+  }
+  
+  reset() {
+    this._velocity = Vector2.zero();
+    this._gravityMultiplier = 1;
+  }
+}
+
+class Player extends KinematicBody {
+  static SIZE = new Vector2(128, 128);
+  _spawn = Vector2.zero();
+
+  _horizontalDirection = 0;
+
+  _textureDirection = Vector2.one();
+  
+  _movemementController = new MovementController(new MovementParameters(
+    1.6, 0.009, 0.003, 0.007, 0.001, 0.9, 1.6,
+    200, 0,
+    0.8, 1.2
+  ));
+
+  _queueMovementParameters = null;
+
+  _jumpsUsed = 0;
+  
+  _nearbyVehicle = null;
+
+  _downDirection = 1;
+  _haveReserveFlip = true;
+  _gravityKillZone = 0;
+  _gravityKillZoneActive = false;
+
+  _currentCheckpoint = null;
+
+  _activeVehicle = true;
+
+  _savedChargeLevel = 0;
+  _chargeLevel = 0;
+
+  _inventory = {
+    artifact1: 0 
+  };
+
+  constructor(position, name) {
+    super(position, Player.SIZE, name);
+
+    log("PlayerSpawn: " + JSON.stringify(position));
+    this._spawn = this.globalPos;
+  }
+
+  start() {
+    Utils.listen("playerDie", () => {
+      this.die();
+    });
+
+    Utils.listen("changeVehicle", vehicle => {
+      if (vehicle != this) {
+        this._activeVehicle = false;
+        this.getChildType(TextureRect).texture.changeState((this._textureDirection.y >= 0 ? "normal" : "inverted") + "Empty");
+      }
+    });
+
+    Utils.listen("nextCheckpoint", checkpoint => {
+      this._savedChargeLevel = this._chargeLevel;
+      this._spawn = checkpoint.globalPos;
+      this._currentCheckpoint = checkpoint;
+    });
+  }
+  
+  update() {
+    this._chargeLevel = 100;
+    this.getChildName("playerpos").text = `(${Math.floor(this.globalPos.x / 64)}, ${Math.floor(this.globalPos.y / 64)})`;
+    this.getChildName("lvlplayerpos").text = `(${Math.floor(this.globalPos.x / 64)}, ${Math.floor((Utils.gameHeight - this.globalPos.y) / 64)})`;
+
+    //// Controlling ////
+    const groundPlatform = this.getGroundPlatform(this._downDirection > 0 ? Vector2.up() : Vector2.down());
+    const onGround = groundPlatform != null;
+
+    // Movement Parameters
+    if (onGround && this._queueMovementParameters != null) {
+      this._activeMovementParameters = this._queueMovementParameters;
+      this._queueMovementParameters = null;
+    }
+
+    // Horizontal
+    this._horizontalDirection =
+      (actions.left.active != actions.right.active) * (actions.left.active * -1 + actions.right.active) * // If both left or right are active, then 0. If left is active, then 1. If right is active, then -1.
+      this._activeVehicle // Only move if this is the active vehicle.
+
+    // Gravity Flip
+    if ((actions.gravFlip.active && !actions.gravFlip.stale) && (onGround || this._haveReserveFlip) && this._activeVehicle) {
+      actions.gravFlip.stale = true;
+      this._downDirection *= -1;
+      this._haveReserveFlip = onGround;
+      this._gravityKillZone = (this._downDirection > 0) * Utils.gameHeight + this.getChildType(Camera).calculateScroll().y;
+      this._gravityKillZoneActive = true;
+    }
+    
+    //// Death Conditions ////
+
+    // Void
+    log(this._position.y + this._size.y);
+    if (this._position.y > Utils.gameHeight || this._position.y + this._size.y < -Utils.gameHeight /*|| (this._gravityKillZoneActive && ((this._gravityMultiplier > 0 && this._position.y > this._gravityKillZone) || (this._gravityMultiplier < 0 && this._position.y + this._size.y < this._gravityKillZone)))*/) {
+      Utils.broadcast("playerDie");
+    }
+
+    //// Texture Updates ////
+
+    // Horizontal
+    let currentMovementSigns = new Vector2(Math.sign(this._horizontalDirection), Math.sign(this._downDirection));
+    if (currentMovementSigns.x == 0) currentMovementSigns.x = this._textureDirection.x;
+    if (!this._textureDirection.equals(currentMovementSigns) && this._activeVehicle) {
+      this._textureDirection = currentMovementSigns;
+      this.getChildType(TextureRect).texture.changeState((this._textureDirection.y >= 0 ? "normal" : "inverted") + (this._textureDirection.x >= 0 ? "Right" : "Left"));
+    }
+  }
+
+  physicsUpdate(physics, dt) {
+    const groundPlatform = this.getGroundPlatform(this._downDirection > 0 ? Vector2.up() : Vector2.down())
+    const onGround = groundPlatform != null;
+
+    const velocity = this._movemementController.computeVelocity(this._horizontalDirection, actions.jump.active && onGround, groundPlatform, this._downDirection, physics, dt);
+    this.moveAndSlide(velocity, physics, dt);
   }
 
   onCollision(collision) {
-    if (collision.normal.equals(this._gravityMultiplier > 0 ? Vector2.up() : Vector2.down())) {
+    if (collision.normal.equals(this._downDirection > 0 ? Vector2.up() : Vector2.down())) {
       this._haveReserveFlip = true;
       this._gravityKillZoneActive = false;
     }
   }
+
+  onRegionEnter(region) {
+    if (region instanceof Battery) {
+      this._chargeLevel = Math.min(this._chargeLevel + 20, 100);
+    }
+  }
   
   die() {
-    this._activeMovementParameters = this._normalMovementParameters;
-    this._chargeLevel = 0;
-    this._position = this._spawn.clone();
-    this._velocity = Vector2.zero();
-    this._acceleration = Vector2.zero();
-    this._gravityMultiplier = 1;
+    this._chargeLevel = this._savedChargeLevel;
+    this.teleportGlobal(this._spawn);
+    this._movemementController.reset();
+    this._downDirection = 1;
   }
 }

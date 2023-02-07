@@ -56,12 +56,16 @@ class Utils {
   }
 
   static broadcast(signal, data = null) {
+    if (!Utils._signals[signal]) return;
+
     Utils._signals[signal].forEach(action => {
       action.call(action, data);
     });
   }
 
   static listen(signal, action) {
+    console.log("Add action", action);
+
     if (!Utils._signals[signal]) {
       Utils._signals[signal] = [];
     }

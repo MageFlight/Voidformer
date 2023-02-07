@@ -338,9 +338,11 @@ class Region extends CollisionObject {
     if (intersecting && !containsRegion) { // If inside, but wasn't last frame
       this._regionsInside.push(region);
       this.onRegionEnter(region);
+      region.onRegionEnter(this);
     } else if (!intersecting && containsRegion) { // If not inside, but was last frame
       this._regionsInside.splice(this._regionsInside.indexOf(region), 1);
       this.onRegionExit(region);
+      region.onRegionExit(this);
     }
   }
 
@@ -348,9 +350,9 @@ class Region extends CollisionObject {
   onRegionExit(region) {}
 }
 
-class RigidBody extends CollisionObject {
+class RigidBody extends Region {
   constructor(position, size, name) {
-    super(position, size, 0b1, 0b1, name);
+    super(position, size, name);
   }
 
   onCollision(collision) {}
