@@ -11,6 +11,9 @@ class Imgui {
   mouseInRegion(regionPos, regionSize) {
     const mouseX = Main.get().mouseHandeler.getMousePos().x;
     const mouseY = Main.get().mouseHandeler.getMousePos().y;
+    log(`Mousepos: (${mouseX}, ${mouseY})`);
+    log(`Position: ${JSON.stringify(regionPos)}`);
+    log(`Size: ${JSON.stringify(regionSize)}`);
 
     return (
       mouseX > regionPos.x &&
@@ -20,7 +23,8 @@ class Imgui {
     );
   }
 
-  button(id, position, size, normalTex, hotTex, activeTex) {
+  button(id, position, size, texture) {
+    log("mouseInRegion: " + this.mouseInRegion(position, size));
     if (this.mouseInRegion(position, size)) {
       // update hot and active items
       if (this._activeItem == 0 || this._activeItem == id) {
@@ -34,12 +38,13 @@ class Imgui {
     this._renderer.viewport.save();
     this._renderer.viewport.setTransform(1, 0, 0, 1, 0, 0); // Always display GUI on top
     if (this._activeItem == id) {
-      activeTex.draw(position, this._renderer);
+      texture.changeState("active");
     } else if (this._hotItem == id) {
-      hotTex.draw(position, this._renderer);
+      texture.changeState("hot");
     } else {
-      normalTex.draw(position, this._renderer);
+      texture.changeState("normal");
     }
+    texture.draw(position, this._renderer);
     this._renderer.viewport.restore();
 
     // If the button is hot and active, but mouse is up,

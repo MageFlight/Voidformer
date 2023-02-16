@@ -230,8 +230,7 @@ class LevelOne extends Level {
 		]
 	}
 
-	async root() {
-		const backgroundTexture = await ImageTexture.create("assets/background/stars.svg");
+	async player() {
 		const playerTex = await MultiStateTex.create({
 			normalRight: await ImageTexture.create("assets/player/V3/rightNormalV3.svg"),
 			normalLeft: await ImageTexture.create("assets/player/V3/leftNormalV3.svg"),
@@ -240,14 +239,39 @@ class LevelOne extends Level {
 			invertedLeft: await ImageTexture.create("assets/player/V3/leftInvertedV3.svg"),
 			invertedEmpty: await ImageTexture.create("assets/player/V3/emptyInvertedV3.svg")
 		}, "normalRight");
+
+		const inventoryTexture = await ColorTexture.create(Vector2.levelVector2(8, 8), "#ff00ff", true);
+
+		return new Player(Vector2.levelPositionVector2(6, 4), "player")
+			.addChild(new AABB(Vector2.zero(), Player.SIZE))
+			.addChild(new TextureRect(Vector2.zero(), Player.SIZE, playerTex, "playerTex"))
+			.addChild(new Camera(Vector2.levelVector2(0, -Utils.levelHeight), Vector2.levelVector2(669, 0), 625, 750, 400, 475, false, false, true, "playerCamera"))
+			.addChild(new Hologram(new Vector2(150, 30), "pos", 30, "#fff", "playerpos"))
+			.addChild(new Hologram(new Vector2(150, 70), "pos", 30, "#fff", "lvlplayerpos"))
+			// .addChild(new InventoryGUI()
+			// 	.addChild(new TextureRect(Vector2.zero(), Vector2.levelVector2(8, 8), inventoryTexture, "inventoryTexture")));
+	}
+
+	async root() {
+		const backgroundTexture = await ImageTexture.create("assets/background/stars.svg");
 		const rocketTexture = await MultiStateTex.create({
 			empty: await ImageTexture.create("assets/goal/rocketEmpty.svg"),
 			full: await ImageTexture.create("assets/goal/rocketFull.svg")
 		}, "empty");
+		const menuButton = await MultiStateTex.create({
+			normal: await ImageTexture.create("assets/gui/pauseNormal.svg"),
+			hot: await ImageTexture.create("assets/gui/pauseHot.svg"),
+			active: await ImageTexture.create("assets/gui/pauseActive.svg"),
+		}, "normal");
 		
 		return [ // IDEA: Make gravity locked to downwards
 			new CanvasLayer(new Transform(), "background")
 				.addChild(new TextureRect(Vector2.zero(), new Vector2(Utils.gameWidth, Utils.gameHeight), backgroundTexture, "backgroundImage")),
+			new HUD()
+				.addChild(new Button(new Vector2(30, 30), new Vector2(64, 64), menuButton, "relic1Use"))
+				.addChild(new Hologram(new Vector2(55, 120), "0", 20, "#ffffff", "relic1Count")),
+				// .addChild(new TextureRect(new Vector2(30, 30), new Vector2(64, 64), menuButton, "texture")),
+				
 			new StaticBody(new Vector2(-1, -1), new Vector2(1, Utils.gameHeight), 0, 0.8, "worldBoundary")
 				.addChild(new AABB(Vector2.zero(), new Vector2(1, Utils.gameHeight), true, "worldBoundaryCOllider")),
 			await this.platform(0, 2, 20, 2),
@@ -367,12 +391,7 @@ class LevelOne extends Level {
 			
 			await this.platform(667, 34, 2, 34),
 
-			new Player(Vector2.levelPositionVector2(6, 4), "player")
-				.addChild(new AABB(Vector2.zero(), Player.SIZE))
-				.addChild(new TextureRect(Vector2.zero(), Player.SIZE, playerTex, "playerTex"))
-				.addChild(new Camera(Vector2.levelVector2(0, -Utils.levelHeight), Vector2.levelVector2(669, 0), 625, 750, 400, 475, false, false, true, "playerCamera"))
-				.addChild(new Hologram(new Vector2(150, 30), "pos", 30, "#fff", "playerpos"))
-				.addChild(new Hologram(new Vector2(150, 70), "pos", 30, "#fff", "lvlplayerpos"))
+			await this.player()
 		];
 	}
 }

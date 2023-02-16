@@ -22,9 +22,7 @@ class View {
 }
 
 class TitleView extends View {
-  _normalTex;
-  _hotTex;
-  _activeTex;
+  _startButtonTexture;
 
   _backgroundTex;
   _titleTex;
@@ -37,9 +35,11 @@ class TitleView extends View {
 
   async init() {
     log("initing");
-    this._normalTex = await ImageTexture.create("assets/titleScreen/startGameBtnN.svg");
-    this._hotTex = await ImageTexture.create("assets/titleScreen/startGameBtnH.svg");
-    this._activeTex = await ImageTexture.create("assets/titleScreen/startGameBtnA.svg");
+    this._startButtonTexture = await MultiStateTex.create({
+      normal: await ImageTexture.create("assets/titleScreen/startGameBtnN.svg"),
+      hot: await ImageTexture.create("assets/titleScreen/startGameBtnH.svg"),
+      active: await ImageTexture.create("assets/titleScreen/startGameBtnA.svg")
+    }, "normal");
 
     this._backgroundTex = await ImageTexture.create("assets/titleScreen/titleBackground.svg");
     this._titleTex = await ImageTexture.create("assets/titleScreen/title.svg");
@@ -71,7 +71,7 @@ class TitleView extends View {
 
       log("tex: ", this._activeTex);
       gui.start(renderer);
-      if (gui.button(gui.getID(), new Vector2(675, 608), new Vector2(576, 128), this._normalTex, this._hotTex, this._activeTex)) {
+      if (gui.button(gui.getID(), new Vector2(675, 608), new Vector2(576, 128), this._startButtonTexture)) {
         Main.get().queueViewChange(1, new LevelOne());
       }
       gui.finish();
@@ -133,13 +133,41 @@ class LevelView extends View {
   }
 
   update(dt) {
+    log("------ dt: " + dt + " ------");
     for (let i = 0; i < this._sprites.length; i++) {
-      const spr = this._sprites[i];
-      spr.update(dt);
-      spr.physicsUpdate(this._physics, dt);
+      this.updateSprite(this._sprites[i], dt);
     }
 
     this._physics.interactRegions();
+  }
+
+  imgui(gui, renderer) {
+    gui.start(renderer);
+    
+    for (let i = 0; i < this._sprites.length; i++) {
+      this.imguiSprite(this._sprites[i], gui);
+    }
+
+    gui.finish();
+  }
+
+  imguiSprite(sprite, gui) {
+    if (sprite instanceof GUISprite) {
+      sprite.imgui(gui);
+    }
+
+    for (let i = 0; i < sprite.children.length; i++) {
+      this.imguiSprite(sprite.children[i], gui);
+    }
+  }
+
+  updateSprite(sprite, dt) {
+    sprite.update(dt);
+    sprite.physicsUpdate(this._physics, dt);
+    
+    for (let i = 0; i < sprite.children.length; i++) {
+      this.updateSprite(sprite.children[i], dt);
+    }
   }
 
   draw(renderer) {

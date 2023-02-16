@@ -70,6 +70,9 @@ class MultiStateTex extends Texture {
     }
 
     static async create(states, initialState) {
+        if (!initialState) {
+            throw new Error("No initial state provided for the texture.");
+        }
         const tex = new MultiStateTex(states, initialState);
         return tex;
     }

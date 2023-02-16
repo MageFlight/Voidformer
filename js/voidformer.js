@@ -6,68 +6,88 @@ const actions = {
     active: false,
     stale: false,
     keys: ['KeyA', 'ArrowLeft'],
-    onPress: null
   },
   right: {
     active: false,
     stale: false,
     keys: ['KeyD', 'ArrowRight'],
-    onPress: null
   },
   jump: {
     active: false,
     stale: false,
     keys: ['Space', 'KeyW', 'ArrowUp'],
-    onPress: null
   },
   gravFlip: {
     active: false,
     stale: false,
     keys: ['ShiftLeft', 'ShiftRight'],
-    onPress: null
-  },
-  reset: {
-    active: false,
-    stale: false,
-    keys: ['KeyR'],
-    onPress: null
   },
   scroll: {
     active: false,
     stale: false,
     keys: ['KeyF'],
-    onPress: null
   },
   paused: {
     active: false,
     stale: false,
     keys: ['KeyP'],
-    onPress: null
   },
   stepFrame: {
     active: false,
     stale: false,
     keys: ['KeyO'],
-    onPress: null
   },
   toggleLog: {
     active: false,
     stale: false,
     keys: ['KeyI'],
-    onPress: null
   },
   changeVehicle: {
     active: false,
     stale: false,
     keys: ['KeyE'],
-    onPress: null
   },
   overdrive: {
     active: false,
     stale: false,
     keys: ['KeyQ'],
-    onPress: null
-  }
+  },
+  toggleInventory: {
+    active: false,
+    stale: false,
+    keys: ['KeyR'],
+  },
+  back: {
+    active: false,
+    stale: false,
+    keys: ['Escape']
+  },
+  useRelic1: {
+    active: false,
+    stale: false,
+    keys: ['Digit1']
+  },
+  useRelic2: {
+    active: false,
+    stale: false,
+    keys: ['Digit2']
+  },
+  useRelic3: {
+    active: false,
+    stale: false,
+    keys: ['Digit3']
+  },
+  useRelic4: {
+    active: false,
+    stale: false,
+    keys: ['Digit4']
+  },
+  useRelic5: {
+    active: false,
+    stale: false,
+    keys: ['Digit5']
+  },
+
 };
 
 
@@ -123,10 +143,8 @@ class Battery extends Region {
     }); // Lock if collected
   }
 
-  onRegionEnter(region) {
-    if (region instanceof Player && this._collectedState == 0) {
-      this.collect();
-    }
+  isCollected() {
+    return this._collectedState > 0;
   }
 }
 
@@ -361,6 +379,7 @@ class MovementController {
       }
     }
 
+    log("dt: " + dt);
     log("accel before friction: " + acceleration);
     acceleration /= onGround ? groundPlatform.friction : this._movementParameters.airFriction;
     log("acceleration after friction: " + acceleration);
@@ -447,7 +466,7 @@ class Player extends KinematicBody {
   _chargeLevel = 0;
 
   _inventory = {
-    artifact1: 0 
+    relic1: 0 
   };
 
   constructor(position, name) {
@@ -474,12 +493,16 @@ class Player extends KinematicBody {
       this._spawn = checkpoint.globalPos;
       this._currentCheckpoint = checkpoint;
     });
+
+    Utils.listen("useRelic", relic => this.useRelic(relic));
   }
   
   update() {
     this._chargeLevel = 100;
     this.getChildName("playerpos").text = `(${Math.floor(this.globalPos.x / 64)}, ${Math.floor(this.globalPos.y / 64)})`;
     this.getChildName("lvlplayerpos").text = `(${Math.floor(this.globalPos.x / 64)}, ${Math.floor((Utils.gameHeight - this.globalPos.y) / 64)})`;
+
+    Utils.broadcast("playerInventory", this._inventory);
 
     //// Controlling ////
     const groundPlatform = this.getGroundPlatform(this._downDirection > 0 ? Vector2.up() : Vector2.down());
@@ -522,6 +545,12 @@ class Player extends KinematicBody {
       this._textureDirection = currentMovementSigns;
       this.getChildType(TextureRect).texture.changeState((this._textureDirection.y >= 0 ? "normal" : "inverted") + (this._textureDirection.x >= 0 ? "Right" : "Left"));
     }
+
+    //// Relic Use ////
+    if (actions.useRelic1.active && !actions.useRelic1.stale) {
+      actions.useRelic1.stale = true;
+      this.useRelic("relic1");
+    }
   }
 
   physicsUpdate(physics, dt) {
@@ -541,7 +570,18 @@ class Player extends KinematicBody {
 
   onRegionEnter(region) {
     if (region instanceof Battery) {
-      this._chargeLevel = Math.min(this._chargeLevel + 20, 100);
+      if (!region.isCollected()) {
+        this._inventory.relic1++;
+        region.collect();
+      }
+    }
+  }
+
+  useRelic(relic) {
+    if (relic === "relic1" && this._inventory[relic] > 0) {
+      log("relic Amount: " + this._inventory[relic]);
+      this._inventory[relic]--;
+      this._visible = !this._visible;
     }
   }
   
@@ -552,3 +592,50 @@ class Player extends KinematicBody {
     this._downDirection = 1;
   }
 }
+
+class HUD extends CanvasLayer {
+  _pressed = false;
+
+  constructor() {
+    super(new Transform(), "HUD");
+  }
+  
+  start() {
+    this.getChildType(Button).onPress = () => {
+      Utils.broadcast("useRelic", "relic1");
+    }
+
+    Utils.listen("playerInventory", data => {
+      Object.keys(data).forEach(key => {
+        this.getChildName(key + "Count").text = data[key];
+      });
+    });
+  }
+
+  update() {
+  }
+}
+
+// class InventoryGUI extends Sprite {
+//   constructor() {
+//     super(Vector2.levelPositionVector2(-3, 3), Vector2.levelVector2(8, 8), "inventoryGUI");
+//   }
+
+//   update() {
+//     log("Updating inventory, visible: " + this._visible);
+//     this._visible = ((actions.toggleInventory.active && !actions.toggleInventory.stale) != this._visible) && !(actions.back.active && !actions.back.stale);
+//     actions.toggleInventory.stale = actions.toggleInventory.active;
+//     actions.back.stale = actions.back.active;
+
+//     if (this._visible && ((actions.useRelic1.active && !actions.useRelic1.stale) || (actions.useRelic2.active && !actions.useRelic2.stale) || (actions.useRelic3.active && !actions.useRelic3.stale) || (actions.useRelic4.active && !actions.useRelic4.stale) || (actions.useRelic5.active && !actions.useRelic5.stale))) {
+//       Utils.broadcast("useRelic",
+//         ((actions.useRelic1.active && !actions.useRelic1.stale) * "relic1") +
+//         ((actions.useRelic2.active && !actions.useRelic2.stale) * "relic2") +
+//         ((actions.useRelic3.active && !actions.useRelic3.stale) * "relic3") +
+//         ((actions.useRelic4.active && !actions.useRelic4.stale) * "relic4") +
+//         ((actions.useRelic5.active && !actions.useRelic5.stale) * "relic5")
+//       );
+//     }
+
+//   }
+// }
