@@ -15,6 +15,8 @@ class Main {
   _debugger;
   _mouseHandeler;
 
+  _logActive;
+
   _dt = -1;
   _prevStartTime = Date.now();
 
@@ -55,6 +57,9 @@ class Main {
 
   frame(startTime) {
     try {
+      if (this._updateGui || this._updateView || this._drawView) {        
+        clearLogBuffer();
+      }
       startTime = startTime;
       this._dt = startTime - this._prevStartTime;
       this._prevStartTime = startTime;
@@ -71,7 +76,7 @@ class Main {
         }
         if (actions.toggleLog.active && !actions.toggleLog.stale) {
           actions.toggleLog.stale = true;
-          logActive = !logActive;
+          this._logActive = !this._logActive;
         }
 
         if (this._updateView) {
@@ -83,6 +88,9 @@ class Main {
           this._currentView.draw(this._renderer);
         }
         if (this._updateGui) this._currentView.imgui(this._gui, this._renderer);
+        if (this._logActive && this._updateView && this._drawView && this._updateGui) {
+          logUpdate();
+        }
 
         if (actions.stepFrame.active && !actions.stepFrame.stale) {
           this.stop();

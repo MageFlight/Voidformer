@@ -144,6 +144,16 @@ class Utils {
       yield i++;
     }
   }
+
+  static clone(object) {
+    let newObject = {};
+
+    for (let key in object) {
+      newObject[key] = object[key];
+    }
+
+    return newObject;
+  }
 }
 
 class Vector2 {
@@ -325,20 +335,32 @@ class Transform {
 }
 
 let debugWindow = null;
-let logActive = false;
+let logBuffer = [];
 
-function log(message) {
-  if (!logActive) return;
+function log(...messages) {
+  const formattedMessages = [];
+  messages.forEach(message => {
+    if (message === undefined) {
+      formattedMessages.push("undefined");
+      return;
+    }
 
+    formattedMessages.push(JSON.stringify(message).replace(/\\?\"/g, ''))
+  });
+  logBuffer.push(formattedMessages.join(''));
+}
+
+function clearLogBuffer() {
+  logBuffer = [];
+}
+
+function logUpdate() {
   if (debugWindow == null || debugWindow.closed) {
     debugWindow = window.open("", "DEBUG", `width=500,height=500,top=${(screen.height - 500) / 2},left=${screen.width - 500}`);
+    debugWindow.document.body.appendChild(debugWindow.document.createElement("pre"));
   }
-  const text = debugWindow.document.createElement('p');
-  text.textContent = message;
-  const debugBody = debugWindow.document.body;
-  debugBody.appendChild(text);
-  if (debugBody.childElementCount > 70) {
-    debugBody.removeChild(debugBody.firstChild);
-  }
-  debugWindow.scrollTo(0, debugWindow.document.body.scrollHeight);
+
+  const text = debugWindow.document.querySelector('pre');
+  text.textContent = logBuffer.join("\n");
+  debugWindow.scrollTo(debugWindow.document.body.scrollLeft, debugWindow.document.body.scrollHeight);
 }

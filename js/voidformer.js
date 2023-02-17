@@ -137,7 +137,7 @@ class Battery extends Region {
   start() {
     console.log("Starting battery", this);
     Utils.listen("playerDie", () => this.reset());
-    Utils.listen("playerCheckpoint", () => {
+    Utils.listen("nextCheckpoint", () => {
       this._collectedState = Math.min(this._collectedState * 2, 2);
       log("Attempted lock, state " + this._collectedState);
     }); // Lock if collected
@@ -469,6 +469,8 @@ class Player extends KinematicBody {
     relic1: 0 
   };
 
+  _savedInventory = this._inventory;
+
   constructor(position, name) {
     super(position, Player.SIZE, name);
 
@@ -492,6 +494,8 @@ class Player extends KinematicBody {
       this._savedChargeLevel = this._chargeLevel;
       this._spawn = checkpoint.globalPos;
       this._currentCheckpoint = checkpoint;
+
+      this._savedInventory = Utils.clone(this._inventory);
     });
 
     Utils.listen("useRelic", relic => this.useRelic(relic));
@@ -590,6 +594,10 @@ class Player extends KinematicBody {
     this.teleportGlobal(this._spawn);
     this._movemementController.reset();
     this._downDirection = 1;
+
+    log("Inventory: ", this._savedInventory);
+    // Reset Inventory
+    this._inventory = Utils.clone(this._savedInventory);
   }
 }
 
