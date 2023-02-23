@@ -150,7 +150,7 @@ class PhysicsEngine {
           const collision = {
             time: 0,
             normal: new Vector2(signX, 0),
-            position: new Vector2(spriteGlobalPos + signX, 0),
+            position: new Vector2(spriteGlobalPos.x + signX, spriteGlobalPos.y),
             collider: possibleSprites[i]
           };
 
@@ -159,10 +159,13 @@ class PhysicsEngine {
           return collision;
         } else {
           const signY = Math.sign(dy);
+          log("spriteGlobalPos: ", spriteGlobalPos.y);
+          log("signY: ", signY, " sub: ", spriteGlobalPos.y - signY);
+          log("expected position: ", new Vector2(0, spriteGlobalPos.y - signY));
           const collision = {
             time: 0,
             normal: new Vector2(0, signY),
-            position: new Vector2(0, spriteGlobalPos - signY),
+            position: new Vector2(spriteGlobalPos.x, spriteGlobalPos.y - signY),
             collider: possibleSprites[i]
           };
 

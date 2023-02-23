@@ -97,6 +97,7 @@ class Utils {
           timer.timeRemaining = 0;
           log("final time left: " + timer.timeRemaining);
         } else {
+          log("removing")
           Utils._timers.splice(i, 1);
         }
       }
@@ -336,6 +337,7 @@ class Transform {
 
 let debugWindow = null;
 let logBuffer = [];
+let logScroll = 1;
 
 function log(...messages) {
   const formattedMessages = [];
@@ -347,6 +349,8 @@ function log(...messages) {
 
     formattedMessages.push(JSON.stringify(message).replace(/\\?\"/g, ''))
   });
+  
+  formattedMessages.unshift(`[${(new Error().stack.toString().split(/\r\n|\n/))[2].replace(/([\S\s]*\/Voidformer\/)|(\)$)/g, '')}] `);
   logBuffer.push(formattedMessages.join(''));
 }
 
@@ -356,11 +360,12 @@ function clearLogBuffer() {
 
 function logUpdate() {
   if (debugWindow == null || debugWindow.closed) {
-    debugWindow = window.open("", "DEBUG", `width=500,height=500,top=${(screen.height - 500) / 2},left=${screen.width - 500}`);
+    debugWindow = window.open("", "DEBUG", `width=${screen.width / 2},height=${screen.height},top=${(screen.height - 500) / 2},left=${screen.width - 500}`);
     debugWindow.document.body.appendChild(debugWindow.document.createElement("pre"));
   }
 
   const text = debugWindow.document.querySelector('pre');
   text.textContent = logBuffer.join("\n");
-  debugWindow.scrollTo(debugWindow.document.body.scrollLeft, debugWindow.document.body.scrollHeight);
+  logScroll = debugWindow.document.body.scrollTop / debugWindow.document.body.scrollHeight;
+  debugWindow.scrollTo(debugWindow.document.body.scrollLeft, logScroll * debugWindow.document.body.scrollHeight);
 }

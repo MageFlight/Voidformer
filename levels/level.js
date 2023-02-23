@@ -242,7 +242,8 @@ class LevelOne extends Level {
 
 		const inventoryTexture = await ColorTexture.create(Vector2.levelVector2(8, 8), "#ff00ff", true);
 
-		return new Player(Vector2.levelPositionVector2(6, 4), "player")
+		// return new Player(Vector2.levelPositionVector2(6, 4), "player")
+		return new Player(new Vector2(23936, -191.99999999999997), "player")
 			.addChild(new AABB(Vector2.zero(), Player.SIZE))
 			.addChild(new TextureRect(Vector2.zero(), Player.SIZE, playerTex, "playerTex"))
 			.addChild(new Camera(Vector2.levelVector2(0, -Utils.levelHeight), Vector2.levelVector2(669, 0), 625, 750, 400, 475, false, false, true, "playerCamera"))

@@ -282,7 +282,7 @@ class Camera extends Sprite {
     } else {
       parentScreenPosition = new Vector2(this._parent.globalPos.x - this._scrollPos.x, this._parent.globalPos.y - this._scrollPos.y);
     }
-    log(JSON.stringify(parentScreenPosition));
+    log("parentSreenPos: ", JSON.stringify(parentScreenPosition));
     log("scrollPos: " + JSON.stringify(this._scrollPos));
     log("scrollMax: " + JSON.stringify(this._scrollMax));
     log("scrollMin: " + JSON.stringify(this._scrollMin));

@@ -282,6 +282,9 @@ class MovementParameters {
 
   jumpHeight;
   maxAirJumps;
+  temporaryAirJumps = 0;
+  jumpBuffer;
+  coyoteTime;
 
   upwardGravity;
   downwardGravity;
@@ -297,6 +300,8 @@ class MovementParameters {
    * @param {Number} turnRate Multiplies the acceleration by this value when the targeted horizontal velocity is not the same sign as the actual velocity.
    * @param {Number} jumpHeight The height of the object's jump
    * @param {Number} maxAirJumps The maximum amount of jumps in the air
+   * @param {Number} jumpBuffer The amount of time a jump is held down
+   * @param {Number} coyoteTime The amount of time after walking off of a platform when a jump is allowed
    * @param {Number} upwardGravity The multiplier on gravity on the object when its velocity is upwards.
    * @param {Number} downwardGravity The multiplier on gravity on the object when its velocity is 0 or downwards.
    */
@@ -310,6 +315,8 @@ class MovementParameters {
     turnRate,
     jumpHeight,
     maxAirJumps,
+    jumpBuffer,
+    coyoteTime,
     upwardGravity,
     downwardGravity
   ) {
@@ -324,9 +331,28 @@ class MovementParameters {
 
     this.jumpHeight = jumpHeight;
     this.maxAirJumps = maxAirJumps;
+
+    this.jumpBuffer = jumpBuffer;
+    this.coyoteTime = coyoteTime;
     
     this.upwardGravity = upwardGravity;
     this.downwardGravity = downwardGravity;
+  }
+
+  clone() {
+    return new MovementParameters(
+      this.maxSpeed,
+      this.maxAcceleration,
+      this.maxAirAcceleration,
+      this.deccelerationRate,
+      this.airDeccelerationRate,
+      this.airFriction,
+      this.turnRate,
+      this.jumpHeight,
+      this.maxAirJumps,
+      this.upwardGravity,
+      this.downwardGravity
+    );
   }
 }
 
@@ -337,6 +363,11 @@ class MovementController {
   _gravityMultiplier = 1;
 
   _jumpsUsed = 0;
+
+  _jumped = false;
+  _coyoteJumpAllowed = false;
+
+  _attemptingJump = false;
 
   /**
    * A movement controller computes what an object's velocity should be based on the player input and the movement parameters.
@@ -366,6 +397,18 @@ class MovementController {
    */
   computeVelocity(desiredHorizontalDirection, jumpDesired, groundPlatform, downDirection, physics, dt) {
     const onGround = groundPlatform != null;
+    log("onGround: ", onGround);
+    this._jumped = this._jumped && !onGround;
+    
+    // Coyote time
+    this._coyoteJumpAllowed *= !onGround; // If on the ground, coyoteJumpAllowed resets to 0. Otherwise, it keeps state
+    if (!this._jumped && !onGround && this._coyoteJumpAllowed == 0) {
+      this._coyoteJumpAllowed = 1;
+      Utils.timer(() => {
+        log("resetCoyote");
+        this._coyoteJumpAllowed = -1;
+      }, this._movementParameters.coyoteTime, false);
+    }
 
     // Horizontal Movement
     let acceleration = 0;
@@ -379,37 +422,43 @@ class MovementController {
       }
     }
 
-    log("dt: " + dt);
-    log("accel before friction: " + acceleration);
     acceleration /= onGround ? groundPlatform.friction : this._movementParameters.airFriction;
-    log("acceleration after friction: " + acceleration);
     this._velocity.x = Utils.moveTowards(this._velocity.x, desiredHorizontalDirection * this._movementParameters.maxSpeed, acceleration * dt);
-    log("final x velocity: " + this._velocity.x);
 
     //// Vertical Movement ////
     // Jumping
     this._jumpsUsed *= !onGround; // Reset jumps used if on ground
 
-    if ((onGround || this._jumpsUsed < this._movementParameters.maxAirJumps) && jumpDesired) {
-      this._jumpsUsed += 1 * !onGround;
+    if (!this._attemptingJump && jumpDesired) {
+      this._attemptingJump = true;
+      Utils.timer(() => this._attemptingJump = false, this._movementParameters.jumpBuffer);
+    }
+
+    log("jumping: ", this._jumped);
+    log("jumpDesired: " + jumpDesired);
+    log("atteptingJump: " + this._attemptingJump);
+    if (((onGround || this._coyoteJumpAllowed == 1) || this._jumpsUsed < this._movementParameters.maxAirJumps || ((this._jumpsUsed >= this._movementParameters.maxAirJumps) && this._movementParameters.temporaryAirJumps)) && this._attemptingJump) {
+      this._jumped = true;
+      this._attemptingJump = false;
+
+      if ((this._jumpsUsed >= this._movementParameters.maxAirJumps) && this._movementParameters.temporaryAirJumps > 0 && !(onGround || this._coyoteJumpAllowed == 1)) {
+        this._movementParameters.temporaryAirJumps--;
+      } else {
+        this._jumpsUsed += 1 * !(onGround || this._coyoteJumpAllowed == 1);
+      }
 
       let jumpSpeed = -Math.sqrt(-4 * this._movementParameters.jumpHeight * -(physics.gravity * this._movementParameters.upwardGravity)) * downDirection; // Gravity is inverted because y-axis is inverted (relative to math direction) in Andromeda Game Engine.
-      log("jumpSpeed: " + jumpSpeed)
 
       // Making jump height constant in air jump environments
       if (this._velocity.y < 0) {
-        log("adjusting (up)")
-        jumpSpeed = Math.max(jumpSpeed - this._velocity.y, 0);
+        jumpSpeed = jumpSpeed - this._velocity.y;
       } else if (this._velocity.y > 0) {
-        log("adjusting (down)")
         jumpSpeed -= this._velocity.y;
       }
 
-      log("yvel: " + this._velocity.y + " finalJump: " + jumpSpeed)
       this._velocity.y += jumpSpeed;
     }
 
-    log("yVel before grav: " + this._velocity.y);
     // Special Gravity
 
     if (this._velocity.y * downDirection < 0) {
@@ -419,7 +468,6 @@ class MovementController {
     } else {
       this._gravityMultiplier = downDirection;
     }
-    log("gravMultiplier: " + this._gravityMultiplier);
 
     // Apply Gravity
     this._velocity.y += physics.gravity * this._gravityMultiplier * dt;
@@ -440,16 +488,12 @@ class Player extends KinematicBody {
   _horizontalDirection = 0;
 
   _textureDirection = Vector2.one();
+
+  _normalMovementParameters;
   
-  _movemementController = new MovementController(new MovementParameters(
-    1.6, 0.009, 0.003, 0.007, 0.001, 0.9, 1.6,
-    200, 0,
-    0.8, 1.2
-  ));
+  _movemementController;
 
-  _queueMovementParameters = null;
-
-  _jumpsUsed = 0;
+  _jumpDesired = false;
   
   _nearbyVehicle = null;
 
@@ -476,6 +520,13 @@ class Player extends KinematicBody {
 
     log("PlayerSpawn: " + JSON.stringify(position));
     this._spawn = this.globalPos;
+    this._normalMovementParameters = new MovementParameters(
+      1.6, 0.009, 0.003, 0.007, 0.001, 0.9, 1.6,
+      200, 0,
+      83, 50,
+      0.8, 1.2
+    );
+    this._movemementController = new MovementController(this._normalMovementParameters);
   }
 
   start() {
@@ -512,16 +563,14 @@ class Player extends KinematicBody {
     const groundPlatform = this.getGroundPlatform(this._downDirection > 0 ? Vector2.up() : Vector2.down());
     const onGround = groundPlatform != null;
 
-    // Movement Parameters
-    if (onGround && this._queueMovementParameters != null) {
-      this._activeMovementParameters = this._queueMovementParameters;
-      this._queueMovementParameters = null;
-    }
-
     // Horizontal
     this._horizontalDirection =
       (actions.left.active != actions.right.active) * (actions.left.active * -1 + actions.right.active) * // If both left or right are active, then 0. If left is active, then 1. If right is active, then -1.
       this._activeVehicle // Only move if this is the active vehicle.
+    
+    log("jump active: ", actions.jump.active, " stale: ", actions.jump.stale);
+    this._jumpDesired = actions.jump.active && !actions.jump.stale;
+    actions.jump.stale = actions.jump.active;
 
     // Gravity Flip
     if ((actions.gravFlip.active && !actions.gravFlip.stale) && (onGround || this._haveReserveFlip) && this._activeVehicle) {
@@ -561,7 +610,7 @@ class Player extends KinematicBody {
     const groundPlatform = this.getGroundPlatform(this._downDirection > 0 ? Vector2.up() : Vector2.down())
     const onGround = groundPlatform != null;
 
-    const velocity = this._movemementController.computeVelocity(this._horizontalDirection, actions.jump.active && onGround, groundPlatform, this._downDirection, physics, dt);
+    const velocity = this._movemementController.computeVelocity(this._horizontalDirection, this._jumpDesired, groundPlatform, this._downDirection, physics, dt);
     this.moveAndSlide(velocity, physics, dt);
   }
 
@@ -582,20 +631,23 @@ class Player extends KinematicBody {
   }
 
   useRelic(relic) {
-    if (relic === "relic1" && this._inventory[relic] > 0) {
+    if (relic === "relic1" && this._inventory[relic] > 0 && this._movemementController.movementParameters.temporaryAirJumps != 2) {
       log("relic Amount: " + this._inventory[relic]);
       this._inventory[relic]--;
-      this._visible = !this._visible;
+
+      this._movemementController.movementParameters.temporaryAirJumps = 2;
     }
   }
   
   die() {
     this._chargeLevel = this._savedChargeLevel;
     this.teleportGlobal(this._spawn);
+    this._movemementController.movementParameters = this._normalMovementParameters;
     this._movemementController.reset();
     this._downDirection = 1;
 
     log("Inventory: ", this._savedInventory);
+    log("position: ", this._position);
     // Reset Inventory
     this._inventory = Utils.clone(this._savedInventory);
   }

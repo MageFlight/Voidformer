@@ -72,6 +72,7 @@ class Main {
           this.togglePause();
         }
         if (actions.stepFrame.active && !actions.stepFrame.stale) {
+          clearLogBuffer();
           this.start();
         }
         if (actions.toggleLog.active && !actions.toggleLog.stale) {
