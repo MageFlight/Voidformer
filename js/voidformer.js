@@ -101,19 +101,15 @@ class Spike extends Region {
   constructor(position, size, name) {
     super(position, size, name);
   }
-
-  onRegionEnter(region) {
-    if (region instanceof Player) {
-      Utils.broadcast("playerDie");
-    }
-  }
 }
 
-class Battery extends Region {
+class Collectable extends Region {
   _collectedState = 0; // 0 is Uncollected, 1 is collected, no checkpoint lock, 2 is collected and locked
+  _item;
  
-  constructor(position, size, name) {
+  constructor(position, size, item, name) {
     super(position, size, name);
+    this._item = item;
   }
 
   collect() {
@@ -145,6 +141,10 @@ class Battery extends Region {
 
   isCollected() {
     return this._collectedState > 0;
+  }
+
+  get item() {
+    return this._item;
   }
 }
 
@@ -509,8 +509,12 @@ class Player extends KinematicBody {
   _savedChargeLevel = 0;
   _chargeLevel = 0;
 
+  _invincible = false;
+
   _inventory = {
-    relic1: 0 
+    relic1: 0,
+    ancientShield: 0,
+    battery: 0
   };
 
   _savedInventory = this._inventory;
@@ -553,7 +557,6 @@ class Player extends KinematicBody {
   }
   
   update() {
-    this._chargeLevel = 100;
     this.getChildName("playerpos").text = `(${Math.floor(this.globalPos.x / 64)}, ${Math.floor(this.globalPos.y / 64)})`;
     this.getChildName("lvlplayerpos").text = `(${Math.floor(this.globalPos.x / 64)}, ${Math.floor((Utils.gameHeight - this.globalPos.y) / 64)})`;
 
@@ -604,6 +607,10 @@ class Player extends KinematicBody {
       actions.useRelic1.stale = true;
       this.useRelic("relic1");
     }
+    if (actions.useRelic2.active && !actions.useRelic2.stale) {
+      actions.useRelic2.stale = true;
+      this.useRelic("ancientShield");
+    }
   }
 
   physicsUpdate(physics, dt) {
@@ -622,11 +629,13 @@ class Player extends KinematicBody {
   }
 
   onRegionEnter(region) {
-    if (region instanceof Battery) {
+    if (region instanceof Collectable) {
       if (!region.isCollected()) {
-        this._inventory.relic1++;
+        this._inventory[region.item]++;
         region.collect();
       }
+    } else if (region instanceof Spike && !this._invincible) {
+      this.die();
     }
   }
 
@@ -636,6 +645,11 @@ class Player extends KinematicBody {
       this._inventory[relic]--;
 
       this._movemementController.movementParameters.temporaryAirJumps = 2;
+    } else if (relic === "ancientShield" && this._inventory[relic] > 0 && !this._invincible) {
+      this._inventory[relic]--;
+      this._invincible = true;
+
+      Utils.timer(() => this._invincible = false, 5000);
     }
   }
   
@@ -655,6 +669,7 @@ class Player extends KinematicBody {
 
 class HUD extends CanvasLayer {
   _pressed = false;
+  _items = [];
 
   constructor() {
     super(new Transform(), "HUD");
@@ -664,10 +679,17 @@ class HUD extends CanvasLayer {
     this.getChildType(Button).onPress = () => {
       Utils.broadcast("useRelic", "relic1");
     }
+    this._children.forEach(child => {
+      if (child.name.match(/^[\w\d]+Count$/i)) {
+        this._items.push(child.name.substring(0, child.name.indexOf("Count")));
+      }
+    })
 
     Utils.listen("playerInventory", data => {
       Object.keys(data).forEach(key => {
-        this.getChildName(key + "Count").text = data[key];
+        if (this._items.indexOf(key) != -1) {
+          this.getChildName(key + "Count").text = data[key];
+        }
       });
     });
   }

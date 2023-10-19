@@ -125,11 +125,12 @@ class LevelView extends View {
       if (this._currentLevel == this._levels.length) {
         alert("You finished the game! Reload the page to play again.");
         Utils.broadcast("togglePause");
+        return;
       }
-      this.loadCurrentLevel();
+      Utils.broadcast("syncLoad", this.loadCurrentLevel());
     });
 
-    this.loadCurrentLevel();
+    Utils.broadcast("syncLoad", this.loadCurrentLevel());
   }
 
   update(dt) {

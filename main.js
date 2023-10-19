@@ -9,6 +9,7 @@ class Main {
   _drawView = true;
   _updateGui = true;
   _toggleActive = false;
+  _waitingForSync = false;
 
   _gui;
   _renderer;
@@ -31,6 +32,15 @@ class Main {
 
       Utils.listen("greet", data => alert(JSON.stringify(data)));
       Utils.listen("togglePause", () => this.togglePause());
+
+      Utils.listen("syncLoad", promise => {
+        this.stop();
+        this._waitingForSync = true;
+        promise.then(() => {
+          this.start();
+          this._waitingForSync = false; 
+        }).catch(error => alert(error.stack));
+      });
     } catch (e) {
       log(e.stack);
     }
@@ -91,6 +101,10 @@ class Main {
         if (this._updateGui) this._currentView.imgui(this._gui, this._renderer);
         if (this._logActive && this._updateView && this._drawView && this._updateGui) {
           logUpdate();
+        }
+
+        if (this._waitingForSync) {
+          this._renderer.clear('#0000ff');
         }
 
         if (actions.stepFrame.active && !actions.stepFrame.stale) {

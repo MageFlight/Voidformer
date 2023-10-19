@@ -207,9 +207,9 @@ class LevelOne extends Level {
 		]
 	}
 
-	async battery(x, y, name="power") {
+	async relic(x, y, name) {
 		return [
-			new Battery(Vector2.levelPositionVector2(x, y), new Vector2(64, 64), name)
+			new Collectable(Vector2.levelPositionVector2(x, y), new Vector2(64, 64), name, name)
 				.addChild(new AABB(Vector2.zero(), new Vector2(64, 64), true, name + "Collider"))
 				.addChild(new TextureRect(Vector2.zero(), new Vector2(64, 64), await ColorTexture.create(new Vector2(64, 64), "#00ff00", true)))
 		];
@@ -242,8 +242,7 @@ class LevelOne extends Level {
 
 		const inventoryTexture = await ColorTexture.create(Vector2.levelVector2(8, 8), "#ff00ff", true);
 
-		// return new Player(Vector2.levelPositionVector2(6, 4), "player")
-		return new Player(new Vector2(23936, -191.99999999999997), "player")
+		return new Player(Vector2.levelPositionVector2(6, 4), "player")
 			.addChild(new AABB(Vector2.zero(), Player.SIZE))
 			.addChild(new TextureRect(Vector2.zero(), Player.SIZE, playerTex, "playerTex"))
 			.addChild(new Camera(Vector2.levelVector2(0, -Utils.levelHeight), Vector2.levelVector2(669, 0), 625, 750, 400, 475, false, false, true, "playerCamera"))
@@ -270,7 +269,9 @@ class LevelOne extends Level {
 				.addChild(new TextureRect(Vector2.zero(), new Vector2(Utils.gameWidth, Utils.gameHeight), backgroundTexture, "backgroundImage")),
 			new HUD()
 				.addChild(new Button(new Vector2(30, 30), new Vector2(64, 64), menuButton, "relic1Use"))
-				.addChild(new Hologram(new Vector2(55, 120), "0", 20, "#ffffff", "relic1Count")),
+				.addChild(new Hologram(new Vector2(55, 120), "0", 20, "#ffffff", "relic1Count"))
+				.addChild(new Button(new Vector2(120, 30), new Vector2(64, 64), menuButton, "ancientShieldUse"))
+				.addChild(new Hologram(new Vector2(145, 120), "0", 20, "#ffffff", "ancientShieldCount")),
 				// .addChild(new TextureRect(new Vector2(30, 30), new Vector2(64, 64), menuButton, "texture")),
 				
 			new StaticBody(new Vector2(-1, -1), new Vector2(1, Utils.gameHeight), 0, 0.8, "worldBoundary")
@@ -280,9 +281,9 @@ class LevelOne extends Level {
 			await this.platform(27, 5, 8, 5),
 			await this.platform(43, 7, 6, 7),
 			await this.platform(60, 2, 40, 2),
-			new Hologram(Vector2.levelPositionVector2(66, 6), "Collect 5 batteries to go into Overdrive!", 45, "#fff", "batteryHologram"),
+			// new Hologram(Vector2.levelPositionVector2(66, 6), "Collect 5 batteries to go into Overdrive!", 45, "#fff", "batteryHologram"),
 			await this.spike(80, 3, 5, 1, false),
-			await this.battery(82, 10),
+			await this.relic(82, 10, "ancientShield"),
 
 			// Platform / Spike combo
 			await this.platform(108, 3, 10, 3),
@@ -296,7 +297,7 @@ class LevelOne extends Level {
 			await this.platform(157, 7, 10, 1),
 			// await this.platform(172, 34, 3, 29),
 			await this.platform(161, 34, 14, 20),
-			await this.battery(162, 11, "power"),
+			await this.relic(162, 11, "relic1"),
 			await this.spike(162.25, 8, 0.5, 1, false),
 
 			await this.platform(173, 14, 2, 4),
@@ -325,7 +326,7 @@ class LevelOne extends Level {
 			await this.platform(208, 14, 5, 1),
 			// await this.spike(208, 16, 1, 2, false),
 			await this.platform(218, 10, 5, 1),
-			await this.battery(219, 13),
+			await this.relic(219, 13, "relic1"),
 			await this.spike(222, 12, 1, 2, false),
 			await this.platform(208, 5, 5, 1),
 			// await this.spike(208, 7, 1, 2, false),
@@ -335,7 +336,7 @@ class LevelOne extends Level {
 			await this.platform(251, 2, 24, 2),
 
 			await this.spike(236, 3, 2, 2, false),
-			await this.battery(243, 2),
+			await this.relic(243, 2, "relic1"),
 			await this.spike(249, 3, 2, 2, false),
 			
 			await this.platform(283, 6, 6, 6),
@@ -375,7 +376,7 @@ class LevelOne extends Level {
 			await this.platform(526, 6, 8, 1),
 			await this.platform(542, 10, 8, 1),
 			await this.platform(558, 14, 8, 1),
-			await this.battery(561.5, 20, "power"),
+			await this.relic(561.5, 20, "relic1"),
 			await this.platform(576, 10, 8, 1),
 			await this.platform(594, 6, 8, 1),
 
