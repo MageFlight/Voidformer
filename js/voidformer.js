@@ -119,11 +119,12 @@ class Collectable extends Region {
   }
 
   reset() {
+    log("resetting collectable");
     if (this._collectedState == 2) {
       log("Reset failed due to lock");
       return;
     }
-    log("Resetting battery");
+    log("Resetting collectable, state ", this._collectedState);
 
     this._collectedState = 0;
     this.getChildType(AABB).enabled = true;
@@ -512,12 +513,11 @@ class Player extends KinematicBody {
   _invincible = false;
 
   _inventory = {
-    relic1: 0,
     ancientShield: 0,
     battery: 0
   };
 
-  _savedInventory = this._inventory;
+  _savedInventory = Utils.clone(this._inventory);
 
   constructor(position, name) {
     super(position, Player.SIZE, name);
@@ -546,6 +546,7 @@ class Player extends KinematicBody {
     });
 
     Utils.listen("nextCheckpoint", checkpoint => {
+      log("checkpoint");
       this._savedChargeLevel = this._chargeLevel;
       this._spawn = checkpoint.globalPos;
       this._currentCheckpoint = checkpoint;
@@ -578,10 +579,8 @@ class Player extends KinematicBody {
     // Gravity Flip
     if ((actions.gravFlip.active && !actions.gravFlip.stale) && (onGround || this._haveReserveFlip) && this._activeVehicle) {
       actions.gravFlip.stale = true;
-      this._downDirection *= -1;
       this._haveReserveFlip = onGround;
-      this._gravityKillZone = (this._downDirection > 0) * Utils.gameHeight + this.getChildType(Camera).calculateScroll().y;
-      this._gravityKillZoneActive = true;
+      this.setGravityDirection(this._downDirection * -1);
     }
     
     //// Death Conditions ////
@@ -605,12 +604,18 @@ class Player extends KinematicBody {
     //// Relic Use ////
     if (actions.useRelic1.active && !actions.useRelic1.stale) {
       actions.useRelic1.stale = true;
-      this.useRelic("relic1");
+      this.useRelic("battery");
     }
     if (actions.useRelic2.active && !actions.useRelic2.stale) {
       actions.useRelic2.stale = true;
       this.useRelic("ancientShield");
     }
+  }
+
+  setGravityDirection(downDirection) {
+    this._downDirection = downDirection;
+    this._gravityKillZone = (this._downDirection > 0) * Utils.gameHeight + this.getChildType(Camera).calculateScroll().y;
+    this._gravityKillZoneActive = true;
   }
 
   physicsUpdate(physics, dt) {
@@ -635,16 +640,19 @@ class Player extends KinematicBody {
         region.collect();
       }
     } else if (region instanceof Spike && !this._invincible) {
-      this.die();
+      Utils.broadcast("playerDie");
     }
   }
 
   useRelic(relic) {
-    if (relic === "relic1" && this._inventory[relic] > 0 && this._movemementController.movementParameters.temporaryAirJumps != 2) {
+    if (relic === "battery" && this._inventory[relic] > 0 && this._movemementController.movementParameters.temporaryAirJumps != 2) {
       log("relic Amount: " + this._inventory[relic]);
       this._inventory[relic]--;
-
-      this._movemementController.movementParameters.temporaryAirJumps = 2;
+      this.setGravityDirection(this._downDirection * -1);
+      if (this._downDirection < 0) {
+        Utils.timer(() => this.setGravityDirection(1), 5000);
+      }
+      
     } else if (relic === "ancientShield" && this._inventory[relic] > 0 && !this._invincible) {
       this._inventory[relic]--;
       this._invincible = true;
@@ -660,7 +668,7 @@ class Player extends KinematicBody {
     this._movemementController.reset();
     this._downDirection = 1;
 
-    log("Inventory: ", this._savedInventory);
+    log("Saved Inventory: ", this._savedInventory);
     log("position: ", this._position);
     // Reset Inventory
     this._inventory = Utils.clone(this._savedInventory);

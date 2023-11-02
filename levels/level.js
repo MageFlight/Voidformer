@@ -268,8 +268,8 @@ class LevelOne extends Level {
 			new CanvasLayer(new Transform(), "background")
 				.addChild(new TextureRect(Vector2.zero(), new Vector2(Utils.gameWidth, Utils.gameHeight), backgroundTexture, "backgroundImage")),
 			new HUD()
-				.addChild(new Button(new Vector2(30, 30), new Vector2(64, 64), menuButton, "relic1Use"))
-				.addChild(new Hologram(new Vector2(55, 120), "0", 20, "#ffffff", "relic1Count"))
+				.addChild(new Button(new Vector2(30, 30), new Vector2(64, 64), menuButton, "batteryUse"))
+				.addChild(new Hologram(new Vector2(55, 120), "0", 20, "#ffffff", "batteryCount"))
 				.addChild(new Button(new Vector2(120, 30), new Vector2(64, 64), menuButton, "ancientShieldUse"))
 				.addChild(new Hologram(new Vector2(145, 120), "0", 20, "#ffffff", "ancientShieldCount")),
 				// .addChild(new TextureRect(new Vector2(30, 30), new Vector2(64, 64), menuButton, "texture")),
@@ -278,6 +278,9 @@ class LevelOne extends Level {
 				.addChild(new AABB(Vector2.zero(), new Vector2(1, Utils.gameHeight), true, "worldBoundaryCOllider")),
 			await this.platform(0, 2, 20, 2),
 			new Hologram(Vector2.levelPositionVector2(5, 6), "Use A/D to move, and Space to jump!", 45, "#fff", "movementHologram"),
+			await this.relic(9, 3, "battery"),
+			await this.relic(12, 3, "battery"),
+			await this.relic(15, 3, "battery"),
 			await this.platform(27, 5, 8, 5),
 			await this.platform(43, 7, 6, 7),
 			await this.platform(60, 2, 40, 2),
@@ -297,7 +300,7 @@ class LevelOne extends Level {
 			await this.platform(157, 7, 10, 1),
 			// await this.platform(172, 34, 3, 29),
 			await this.platform(161, 34, 14, 20),
-			await this.relic(162, 11, "relic1"),
+			await this.relic(162, 11, "battery"),
 			await this.spike(162.25, 8, 0.5, 1, false),
 
 			await this.platform(173, 14, 2, 4),
@@ -326,7 +329,7 @@ class LevelOne extends Level {
 			await this.platform(208, 14, 5, 1),
 			// await this.spike(208, 16, 1, 2, false),
 			await this.platform(218, 10, 5, 1),
-			await this.relic(219, 13, "relic1"),
+			await this.relic(219, 13, "battery"),
 			await this.spike(222, 12, 1, 2, false),
 			await this.platform(208, 5, 5, 1),
 			// await this.spike(208, 7, 1, 2, false),
@@ -336,7 +339,7 @@ class LevelOne extends Level {
 			await this.platform(251, 2, 24, 2),
 
 			await this.spike(236, 3, 2, 2, false),
-			await this.relic(243, 2, "relic1"),
+			await this.relic(243, 2, "battery"),
 			await this.spike(249, 3, 2, 2, false),
 			
 			await this.platform(283, 6, 6, 6),
@@ -376,7 +379,7 @@ class LevelOne extends Level {
 			await this.platform(526, 6, 8, 1),
 			await this.platform(542, 10, 8, 1),
 			await this.platform(558, 14, 8, 1),
-			await this.relic(561.5, 20, "relic1"),
+			await this.relic(561.5, 20, "battery"),
 			await this.platform(576, 10, 8, 1),
 			await this.platform(594, 6, 8, 1),
 

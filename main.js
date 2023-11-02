@@ -20,15 +20,17 @@ class Main {
 
   _dt = -1;
   _prevStartTime = Date.now();
+  _loadingTexture = null;
 
   constructor() {
   }
 
-  init() {
+  async init() {
     try {
       this._mouseHandeler = new MouseHandeler();
       this._gui = new Imgui();
       this._renderer = new Renderer(document.querySelector("canvas"));
+      this._loadingTexture = await ImageTexture.create("assets/background/loadingScreen.svg");
 
       Utils.listen("greet", data => alert(JSON.stringify(data)));
       Utils.listen("togglePause", () => this.togglePause());
@@ -104,7 +106,8 @@ class Main {
         }
 
         if (this._waitingForSync) {
-          this._renderer.clear('#0000ff');
+          this._renderer.clear("#000000");
+          this._loadingTexture.draw(new Vector2(0, 0), this._renderer);
         }
 
         if (actions.stepFrame.active && !actions.stepFrame.stale) {
@@ -137,6 +140,7 @@ class Main {
         this._prevView = this._currentView;
       }
     
+      
       switch (newView) {
         case 0:
           this._currentView = new TitleView();
