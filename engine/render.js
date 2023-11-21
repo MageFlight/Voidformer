@@ -1,207 +1,128 @@
 let textureSlots = {};
-let loadedImages = {};
 
 const canvas = document.querySelector('canvas');
 const viewport = canvas.getContext('2d');
-let scaleFactor = 1;
 let currentTileRNG = 0;
 
-class Texture {
-  _data = null;
-  _src;
 
-  constructor(src = "") {
-    this._src = src;
+class TextureRect extends Sprite {
+  _texture;
+
+  constructor(position, size, texture, name) {
+    super(position, size, name);
+    log("tex: " + JSON.stringify(texture));
+    this._texture = texture;
   }
 
-  async load() {
-    log("loadingStaticTex: " + this._src)
-    this._data = await getImage(this._src);
+  set texture(newTex) {
+    this._texture = newTex;
   }
 
-  get raw() {
-    return this._data;
+  get texture() {
+    return this._texture;
   }
 
-  draw(position, size) {
-    viewport.drawImage(
-      this._data,
-      Math.floor(position.x * scaleFactor),
-      Math.floor(position.y * scaleFactor),
-      Math.ceil(size.width * scaleFactor),
-      Math.ceil(size.height * scaleFactor)
-    );
+  draw(renderer) {
+    this._texture.draw(this.globalPos, renderer);
   }
 }
 
-class TiledTexture extends Texture {
-  _tileSize = 64; // Assume tiles are square
-  _sources = [];
-  _size;
-  _rotating;
+class Renderer {
+  _viewport;
+  _canvas;
+  static _scaleFactor = 1;
 
-  constructor(size, imageSize, rotating, sources) {
-    super();
-    this._tileSize = imageSize;
-    this._sources = sources;
-    this._size = size;
-    this._rotating = rotating;
+  constructor(canvas) {
+    this._canvas = canvas;
+    this._viewport = canvas.getContext("2d");
+    addEventListener("resize", () => this.setCanvasSize());
+    this.setCanvasSize();
   }
 
-  async load() {
-    log("rawSources: " + JSON.stringify(this._sources))
-    let tiles = [];
-    for (let i = 0; i < this._sources.length; i++) {
-      tiles.push(await getImage(this._sources[i]));
-    }
-    
-    const tileCanvas = document.createElement('canvas');
-    tileCanvas.width = this._size.width;
-    tileCanvas.height = this._size.height;
-    const tileRender = tileCanvas.getContext('2d');
-    rngSeed = currentTileRNG;
-    currentTileRNG++;
-
-    let workingTiles = [...tiles]; // Copy the tiles
-    seedShuffleArray(workingTiles) // Initialize seed and shuffule array
-
-    for (let column = 0; column < this._size.width; column += this._tileSize) {
-      for (let row = 0; row < this._size.height; row += this._tileSize) {
-        const img = workingTiles.shift();
-        //console.log(img.complete);
-
-        if (this._rotating) {
-          const x = column + this._tileSize / 2; // middle of image
-          const y = row + this._tileSize / 2;
-
-          const angle = Math.floor(seedRand(0, 4)) * 0.5 * Math.PI;
-
-          // Essentially rotating the image about its center
-          tileRender.save();
-          tileRender.translate(x, y);
-          tileRender.rotate(angle);
-          tileRender.drawImage(
-            img,
-            -this._tileSize / 2,
-            -this._tileSize / 2,
-            this._tileSize,
-            this._tileSize
-          )
-          tileRender.restore();
-        } else {
-          tileRender.drawImage(
-            img,
-            column,
-            row,
-            this._tileSize,
-            this._tileSize
-          );
-        }
-
-        tileRender.setTransform(1, 0, 0, 1, 0, 0); // Identity matrix to reset
-
-        //console.log(column, row, imageSize)
-
-        if (workingTiles.length == 0) {
-          workingTiles = [...tiles];
-          seedShuffleArray(workingTiles);
-        }
-      }
-    }
-    
-    this._data = tileCanvas;
-  }
-}
-
-async function parseTex(rawWidth, rawHeight, rawData, scale) {
-  let tex;
-
-  log("rawData: " + JSON.stringify(rawData))
-  switch (rawData.type) {
-    case 'staticTex':
-      tex = new Texture(rawData.src);
-      break;
-
-    case 'tiledTex':
-      tex = new TiledTexture({
-        width: rawWidth * scale,
-        height: rawHeight * scale
-      }, rawData.tileSize * scale, rawData.rotating, rawData.src)
-      break;
-  }
-  await tex.load();
-
-  return tex;
-}
-
-async function getImage(src) {
-  log("fetching image " + src)
-  if (!Object.hasOwn(loadedImages, src)) { // Check if the image is already loaded
-    log("loading img " + src)
-    loadedImages[src] = await loadImg(src);
+  clear(color) {
+    this._viewport.clearRect(-this._viewport.getTransform().e, 0, this._canvas.width, this._canvas.height);
+    this._viewport.fillStyle = color;
+    this._viewport.fillRect(0, 0, this._canvas.width, this._canvas.height);
   }
 
-  return loadedImages[src];
-}
+  drawImage(position, size, data) {
+    this._viewport.drawImage(data, Math.floor(position.x * Renderer._scaleFactor), Math.floor(position.y * Renderer._scaleFactor), Math.ceil(size.x * Renderer._scaleFactor), Math.ceil(size.y * Renderer._scaleFactor));
+  }
 
-function loadImg(src) {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.src = src;
-    img.onload = () => {
-      console.log("loaded image " + src);
-      resolve(img);
+  fillRect(position, size, color) {
+    log("fillRect: " + JSON.stringify(position) + " " + Renderer._scaleFactor);
+    this._viewport.fillStyle = color;
+    this._viewport.fillRect(Math.floor(position.x * Renderer._scaleFactor), Math.floor(position.y * Renderer._scaleFactor), Math.ceil(size.x * Renderer._scaleFactor), Math.ceil(size.y * Renderer._scaleFactor));
+  }
+
+  strokeRect(position, size, color, width = 1) {
+    this._viewport.lineWidth = width;
+    this._viewport.strokeStyle = color;
+    this._viewport.strokeRect(Math.floor(position.x * Renderer._scaleFactor), Math.floor(position.y * Renderer._scaleFactor), Math.ceil(size.x * Renderer._scaleFactor), Math.ceil(size.y * Renderer._scaleFactor))
+  }
+
+  debugLine(startPos, endPos, color, width = 1) {
+    this._viewport.strokeStyle = color;
+    this._viewport.lineWidth = width;
+    this._viewport.beginPath();
+    this._viewport.moveTo(Math.floor(startPos.x * Renderer._scaleFactor), Math.floor(startPos.y * Renderer._scaleFactor));
+    this._viewport.lineTo(Math.floor(endPos.x * Renderer._scaleFactor), Math.floor(endPos.y * Renderer._scaleFactor));
+    this._viewport.stroke();
+  }
+
+  fillText(position, text, fontSize, color) {
+    this._viewport.font = `${Math.ceil(fontSize * Renderer._scaleFactor)}px exo2  `;
+    this._viewport.fillStyle = color;
+    this._viewport.fillText(text, Math.floor(position.x * Renderer._scaleFactor), Math.floor(position.y * Renderer._scaleFactor));
+  }
+
+  translateTo(position) {
+    this._viewport.translate(-position.x * Renderer.scaleFactor - this._viewport.getTransform().e, -position.y * Renderer.scaleFactor - this._viewport.getTransform().f);
+  }
+
+  setCanvasSize() {
+    // Link to a desmos possibly explaining this: https://www.desmos.com/calculator/lndgojuiit
+
+    const roundedHeight = window.innerHeight - (window.innerHeight % 17);
+    const roundedWidth = window.innerWidth - (window.innerWidth % 30);
+    const proposeSizeHeightBased = {
+      height: roundedHeight,
+      width: 30 * roundedHeight / 17
     };
-  });
-};
+    const proposeSizeWidthBased = {
+      width: roundedWidth,
+      height: 17 * roundedWidth / 30
+    };
 
-function fillRect(position, size, color) {
-  viewport.fillStyle = color;
-  viewport.fillRect(Math.floor(position.x * scaleFactor), Math.floor(position.y * scaleFactor), Math.ceil(size.width * scaleFactor), Math.ceil(size.height * scaleFactor));
-}
+    if (proposeSizeHeightBased.height <= window.innerHeight && proposeSizeHeightBased.width <= window.innerWidth) {
+      this._canvas.height = proposeSizeHeightBased.height;
+      this._canvas.width = proposeSizeHeightBased.width;
+    } else {
+      this._canvas.width = proposeSizeWidthBased.width;
+      this._canvas.height = proposeSizeWidthBased.height;
+    }
 
-function strokeRect(position, size, color, width = 1) {
-  viewport.lineWidth = width;
-  viewport.strokeStyle = color;
-  viewport.strokeRect(Math.floor(position.x * scaleFactor), Math.floor(position.y * scaleFactor), Math.ceil(size.width * scaleFactor), Math.ceil(size.height * scaleFactor))
-}
-
-function debugLine(startPos, endPos, color, width = 1) {
-  viewport.strokeStyle = color;
-  viewport.lineWidth = width;
-  viewport.beginPath();
-  viewport.moveTo(Math.floor(startPos.x * scaleFactor), Math.floor(startPos.y * scaleFactor));
-  viewport.lineTo(Math.floor(endPos.x * scaleFactor), Math.floor(endPos.y * scaleFactor));
-  viewport.stroke();
-}
-
-function fillText(position, text, fontSize, color) {
-  log("text: " + JSON.stringify(position) + ", " + text + ", " + fontSize + ", " + color);
-  viewport.font = `${Math.ceil(fontSize * scaleFactor)}px arial`;
-  viewport.fillStyle = color;
-  viewport.fillText(text, Math.floor(position.x * scaleFactor), Math.floor(position.y * scaleFactor));
-}
-
-function setCanvasSize() {
-  // Link to a desmos possibly explaining this: https://www.desmos.com/calculator/lndgojuiit
-
-  const roundedHeight = window.innerHeight - (window.innerHeight % 17);
-  const roundedWidth = window.innerWidth - (window.innerWidth % 30);
-  const proposeSizeHeightBased = {
-    height: roundedHeight,
-    width: 30 * roundedHeight / 17
-  };
-  const proposeSizeWidthBased = {
-    width: roundedWidth,
-    height: 17 * roundedWidth / 30
-  };
-
-  if (proposeSizeHeightBased.height <= window.innerHeight && proposeSizeHeightBased.width <= window.innerWidth) {
-    canvas.height = proposeSizeHeightBased.height;
-    canvas.width = proposeSizeHeightBased.width;
-  } else {
-    canvas.width = proposeSizeWidthBased.width;
-    canvas.height = proposeSizeWidthBased.height;
+    log("canvasSize: " + this._canvas.clientWidth + " gameWidth: " + Utils.gameWidth);
+    Renderer._scaleFactor = this._canvas.clientWidth / Utils.gameWidth;
   }
-  scaleFactor = canvas.clientWidth / gameWidth;
+
+  static get scaleFactor() {
+    return Renderer._scaleFactor;
+  }
+
+  get viewport() {
+    return this._viewport;
+  }
+
+  set viewport(newViewport) {
+    this._viewport = newViewport;
+  }
+
+  get canvas() {
+    return this._canvas;
+  }
+  
+  set canvas(newCanvas) {
+    this._canvas = newCanvas;
+  }
 }
