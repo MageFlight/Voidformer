@@ -25,8 +25,16 @@ class GameObject {
 
   addChild(child) {
     log("parent init: " + this._parent);
+    log("child id: ", child.uid);
     child.parent = this;
     this._children.push(child);
+    return this;
+  }
+
+  addChildren(children) {
+    for (const child of children) {
+      this.addChild(child);
+    }
     return this;
   }
 
@@ -363,10 +371,12 @@ class Region extends CollisionObject {
 
     if (intersecting && !containsRegion) { // If inside, but wasn't last frame
       this._regionsInside.push(region);
+      region._regionsInside.push(this);
       this.onRegionEnter(region);
       region.onRegionEnter(this);
     } else if (!intersecting && containsRegion) { // If not inside, but was last frame
       this._regionsInside.splice(this._regionsInside.indexOf(region), 1);
+      region._regionsInside.splice(region._regionsInside.indexOf(this), 1);
       this.onRegionExit(region);
       region.onRegionExit(this);
     }

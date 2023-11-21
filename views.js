@@ -100,13 +100,16 @@ class LevelView extends View {
   }
 
   async loadCurrentLevel() {
-    const lvl = this._levels[this._currentLevel];
-
     // Attach Listeners
-    Utils.listen("changeCamera", newCamera => this._activeCamera = newCamera);
+    Utils.listen("changeCamera", newCamera => {
+      this._activeCamera = newCamera;
+      alert("Changing camera");
+    });
+
+    const lvl = await this._levels[this._currentLevel].root();
 
     this._physics.reset();
-    this._sprites = (await lvl.root()).flat();
+    this._sprites = (await Promise.all(lvl)).flat();
 
     this._physics.addSprites(this._sprites);
 

@@ -17,11 +17,6 @@ const actions = {
     stale: false,
     keys: ['Space', 'KeyW', 'ArrowUp'],
   },
-  gravFlip: {
-    active: false,
-    stale: false,
-    keys: ['ShiftLeft', 'ShiftRight'],
-  },
   scroll: {
     active: false,
     stale: false,
@@ -153,12 +148,14 @@ class Hologram extends Sprite {
   _fontSize = 16;
   _text = "Placeholder";
   _color;
+  _center = false;
 
-  constructor(position, text, fontSize, color, name) {
-    super(position, new Vector2(text.length * fontSize + 1, fontSize), name);
+  constructor(position, text, fontSize, color, name, center = false) {
+    super(position, new Vector2(text.length * fontSize, fontSize), name);
     this._fontSize = fontSize;
     this._text = text;
     this._color = color;
+    this._center = center;
   }
 
   get fontSize() {
@@ -178,7 +175,11 @@ class Hologram extends Sprite {
   }
 
   draw(renderer) {
-    renderer.fillText(this.globalPos, this._text, this._fontSize, this._color);
+    let position = this.globalPos;
+    if (this._center) {
+      position.x -= renderer.viewport.measureText(this._text).width / 2;
+    }
+    renderer.fillText(position, this._text, this._fontSize, this._color);
   }
 }
 
@@ -492,7 +493,7 @@ class Player extends KinematicBody {
 
   _normalMovementParameters;
   
-  _movemementController;
+  _movementController;
 
   _jumpDesired = false;
   
@@ -500,8 +501,8 @@ class Player extends KinematicBody {
 
   _downDirection = 1;
   _haveReserveFlip = true;
-  _gravityKillZone = 0;
-  _gravityKillZoneActive = false;
+  _gravityKillZone = 128;
+  _gravityKillZoneActive = true;
 
   _currentCheckpoint = null;
 
@@ -512,9 +513,12 @@ class Player extends KinematicBody {
 
   _invincible = false;
 
+  _featherUsed = false;
+
   _inventory = {
-    ancientShield: 0,
-    battery: 0
+    feather: 3,
+    ancientShield: 3,
+    battery: 3
   };
 
   _savedInventory = Utils.clone(this._inventory);
@@ -530,7 +534,7 @@ class Player extends KinematicBody {
       83, 50,
       0.8, 1.2
     );
-    this._movemementController = new MovementController(this._normalMovementParameters);
+    this._movementController = new MovementController(this._normalMovementParameters);
   }
 
   start() {
@@ -575,19 +579,19 @@ class Player extends KinematicBody {
     log("jump active: ", actions.jump.active, " stale: ", actions.jump.stale);
     this._jumpDesired = actions.jump.active && !actions.jump.stale;
     actions.jump.stale = actions.jump.active;
-
-    // Gravity Flip
-    if ((actions.gravFlip.active && !actions.gravFlip.stale) && (onGround || this._haveReserveFlip) && this._activeVehicle) {
-      actions.gravFlip.stale = true;
-      this._haveReserveFlip = onGround;
-      this.setGravityDirection(this._downDirection * -1);
-    }
-    
     //// Death Conditions ////
 
     // Void
+    log("downDirection: ", this._downDirection)
     log(this._position.y + this._size.y);
-    if (this._position.y > Utils.gameHeight || this._position.y + this._size.y < -Utils.gameHeight /*|| (this._gravityKillZoneActive && ((this._gravityMultiplier > 0 && this._position.y > this._gravityKillZone) || (this._gravityMultiplier < 0 && this._position.y + this._size.y < this._gravityKillZone)))*/) {
+    log("downDirection pos: ", this._position.y > Utils.gameHeight);
+    log("downDirection neg: ", (this._position.y + this._size.y) < -Utils.gameHeight);
+    if (
+      (this._downDirection > 0 && this._position.y > Utils.gameHeight) ||
+      (this._downDirection < 0 && (this._position.y + this._size.y) < -Utils.gameHeight) ||
+      (this._position.y > Utils.gameHeight + this._size.y * 3) ||
+      (this._position.y < -Utils.gameHeight - this.size.y * 3)) {
+      log("Out of bounds");
       Utils.broadcast("playerDie");
     }
 
@@ -610,6 +614,14 @@ class Player extends KinematicBody {
       actions.useRelic2.stale = true;
       this.useRelic("ancientShield");
     }
+    if (onGround && this._featherUsed) {
+      this._featherUsed = false;
+      this._movementController._movementParameters.jumpHeight = 200;
+    }
+    if (actions.useRelic3.active && !actions.useRelic3.stale) {
+      actions.useRelic3.stale = true;
+      this.useRelic("feather");
+    }
   }
 
   setGravityDirection(downDirection) {
@@ -622,7 +634,7 @@ class Player extends KinematicBody {
     const groundPlatform = this.getGroundPlatform(this._downDirection > 0 ? Vector2.up() : Vector2.down())
     const onGround = groundPlatform != null;
 
-    const velocity = this._movemementController.computeVelocity(this._horizontalDirection, this._jumpDesired, groundPlatform, this._downDirection, physics, dt);
+    const velocity = this._movementController.computeVelocity(this._horizontalDirection, this._jumpDesired, groundPlatform, this._downDirection, physics, dt);
     this.moveAndSlide(velocity, physics, dt);
   }
 
@@ -645,28 +657,49 @@ class Player extends KinematicBody {
   }
 
   useRelic(relic) {
-    if (relic === "battery" && this._inventory[relic] > 0 && this._movemementController.movementParameters.temporaryAirJumps != 2) {
+    if (relic === "battery" && (this._inventory[relic] > 0)) {
       log("relic Amount: " + this._inventory[relic]);
-      this._inventory[relic]--;
+      if (this._downDirection < 0) {
+        this._inventory[relic]--;
+      }
       this.setGravityDirection(this._downDirection * -1);
       if (this._downDirection < 0) {
-        Utils.timer(() => this.setGravityDirection(1), 5000);
+        Utils.timer(() => {
+          this.setGravityDirection(1);
+          this._inventory[relic]--;
+        }, 5000);
       }
       
     } else if (relic === "ancientShield" && this._inventory[relic] > 0 && !this._invincible) {
       this._inventory[relic]--;
       this._invincible = true;
-
-      Utils.timer(() => this._invincible = false, 5000);
+      Utils.timer(() => {
+        this._invincible = false;
+        log("regionsInside length: ", this._regionsInside.length);
+        for (const region of this._regionsInside) {
+          if (region instanceof Spike) {
+            Utils.broadcast("playerDie");
+          }
+        }
+      }, 5000);
+    } else if (relic === "feather" && this._inventory[relic] > 0 && !this._featherUsed) {
+      this._inventory[relic]--;
+      this._movementController._movementParameters.jumpHeight = 400;
+      if (this._movementController._movementParameters.temporaryAirJumps < 1)
+        this._movementController._movementParameters.temporaryAirJumps = 1;
+      this._jumpDesired = true;
+      this._featherUsed = true;
     }
   }
   
   die() {
     this._chargeLevel = this._savedChargeLevel;
     this.teleportGlobal(this._spawn);
-    this._movemementController.movementParameters = this._normalMovementParameters;
-    this._movemementController.reset();
+    this._movementController.movementParameters = this._normalMovementParameters;
+    this._movementController.reset();
     this._downDirection = 1;
+
+    this._invincible = false;
 
     log("Saved Inventory: ", this._savedInventory);
     log("position: ", this._position);

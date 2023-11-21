@@ -81,6 +81,10 @@ class Utils {
     }); 
   }
 
+  static removeAllTimers() {
+    
+  }
+
   static timerUpdate(dt) {
     for (let i = 0; i < Utils._timers.length; i++) {
       const timer = Utils._timers[i];
@@ -350,7 +354,10 @@ function log(...messages) {
     formattedMessages.push(JSON.stringify(message).replace(/\\?\"/g, ''))
   });
   
-  formattedMessages.unshift(`[${(new Error().stack.toString().split(/\r\n|\n/))[2].replace(/([\S\s]*\/Voidformer\/)|(\)$)/g, '')}] `);
+  let line = (new Error().stack.toString().split(/\r\n|\n/))[2];
+  line = line.split(/https:\/\/[a-z0-9\-\.]+/i)[1];
+  line = line.substring(1, line.length - 1);
+  formattedMessages.unshift(`[${line}] `);
   logBuffer.push(formattedMessages.join(''));
 }
 
