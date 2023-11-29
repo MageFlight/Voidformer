@@ -90,8 +90,8 @@ class LevelView extends View {
 
   _physics;
 
-  _levels = [new TutorialLevel(), new LevelOne()];
-  _currentLevel = 1;
+  _levels = [new LevelOne()];
+  _currentLevel = 0;
 
   constructor() {
     super();
@@ -103,7 +103,6 @@ class LevelView extends View {
     // Attach Listeners
     Utils.listen("changeCamera", newCamera => {
       this._activeCamera = newCamera;
-      alert("Changing camera");
     });
 
     const lvl = await this._levels[this._currentLevel].root();
@@ -126,7 +125,7 @@ class LevelView extends View {
     Utils.listen("nextLevel", () => {
       this._currentLevel++;
       if (this._currentLevel == this._levels.length) {
-        alert("You finished the game! Reload the page to play again.");
+        alert("You finished the game! Reload the page to  play again.");
         Utils.broadcast("togglePause");
         return;
       }
