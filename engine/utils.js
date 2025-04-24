@@ -78,11 +78,11 @@ class Utils {
       length: timeout,
       timeRemaining: 0,
       recurring: recurring
-    }); 
+    });
   }
 
   static removeAllTimers() {
-    
+
   }
 
   static timerUpdate(dt) {
@@ -91,7 +91,7 @@ class Utils {
       timer.timeRemaining += dt;
       log("dt: " + dt);
       log("timeRemaining: " + timer.timeRemaining);
-      log("Length: " + timer.length); 
+      log("Length: " + timer.length);
 
       if (timer.timeRemaining >= timer.length) {
         timer.action.call(timer.action);
@@ -135,7 +135,7 @@ class Utils {
   static shuffleArray(arr, randGen) {
     for (let i = arr.length - 1; i > 0; i--) {
       let j = Math.floor(randGen.next().value * i);
-      
+
       // Same thing as this:
       // let t = arr[i]; arr[i] = arr[j]; arr[j] = t
       [arr[i], arr[j]] = [arr[j], arr[i]];
@@ -353,11 +353,11 @@ function log(...messages) {
 
     formattedMessages.push(JSON.stringify(message).replace(/\\?\"/g, ''))
   });
-  
-  let line = (new Error().stack.toString().split(/\r\n|\n/))[2];
-  line = line.split(/https:\/\/[a-z0-9\-\.]+/i)[1];
-  line = line.substring(1, line.length - 1);
-  formattedMessages.unshift(`[${line}] `);
+
+  // let line = (new Error().stack.toString().split(/\r\n|\n/))[2];
+  // line = line.split(/https?:\/\/[a-z0-9\-\.]+/i)[1];
+  // line = line.substring(1, line.length - 1);
+  // formattedMessages.unshift(`[${line}] `);
   logBuffer.push(formattedMessages.join(''));
 }
 
